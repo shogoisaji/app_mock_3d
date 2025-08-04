@@ -1,0 +1,175 @@
+# task_004_image_handling.yaml
+# 画像選択・適用機能実装
+# 作成日: 2025-08-04
+
+# ── 基本情報 ─────────────────────────────
+task_id: 004
+title: "画像選択・適用機能実装"
+parent_task_id: null
+status: backlog
+priority: 2
+tags: ["image", "photos", "texture", "core"]
+
+# ── 進捗管理 ─────────────────────────────
+progress:
+  completed_steps: []
+  current_step: 1
+  blockers: []
+  notes: ""
+
+# ── 必要素材 ───────────────────────────
+inputs:
+  - title: "基本UI"
+    status: pending
+    description: "task_003の完了"
+    items: ["task_003_basic_ui.yaml"]
+    required: true
+  - title: "3Dモデルシステム"
+    status: pending
+    description: "task_002の完了"
+    items: ["task_002_3d_model_system.yaml"]
+    required: true
+  - title: "画像処理仕様"
+    status: present
+    description: "spec.yamlの画像処理要件"
+    items: ["spec.yaml#core_features.image_application"]
+    required: true
+  - title: "Photos権限"
+    status: pending
+    description: "Info.plistの権限設定"
+    items: ["Info.plist権限設定"]
+    required: true
+
+# ── 期待成果物 ─────────────────────────
+outputs:
+  - title: "画像選択マネージャー"
+    status: pending
+    items: ["Sources/Services/ImagePickerManager.swift"]
+  - title: "画像処理サービス"
+    status: pending
+    items: ["Sources/Services/ImageProcessingService.swift"]
+  - title: "テクスチャ適用システム"
+    status: pending
+    items: ["Sources/Services/TextureManager.swift"]
+  - title: "画像選択UI"
+    status: pending
+    items: ["Sources/Views/ImagePickerView.swift"]
+  - title: "単体テスト"
+    status: pending
+    items: ["Tests/Unit/ImageHandlingTests.swift"]
+
+# ── 実装ステップ ───────────────────────
+steps:
+  - number: 1
+    title: "PhotosUI統合準備"
+    description: |
+      写真選択機能の基盤準備:
+      - PhotosUIフレームワークのインポート
+      - PHPhotoLibraryの権限確認処理
+      - PhotosPicker設定
+      - 権限拒否時のハンドリング
+    estimated_time: 45
+    dependencies: []
+    files_to_modify: ["Sources/Services/PhotoPermissionManager.swift"]
+    acceptance_criteria: "写真ライブラリへのアクセス権限が適切に管理される"
+
+  - number: 2
+    title: "ImagePickerManager作成"
+    description: |
+      画像選択を管理するクラス:
+      - PhotosPickerのSwiftUIラッパー
+      - PNG形式の画像フィルタリング
+      - 選択画像の一時保存
+      - 画像メタデータの取得
+      - エラーハンドリング
+    estimated_time: 75
+    dependencies: [1]
+    files_to_modify: ["Sources/Services/ImagePickerManager.swift"]
+    acceptance_criteria: "PNG画像を選択でき、適切に一時保存される"
+
+  - number: 3
+    title: "画像処理システム実装"
+    description: |
+      選択画像の処理機能:
+      - 最大4096px制限での自動リサイズ
+      - アスペクト比保持
+      - PNG形式での再エンコード（ロスレス）
+      - メモリ効率的な処理
+      - 処理進捗の表示
+    estimated_time: 90
+    dependencies: [2]
+    files_to_modify: ["Sources/Services/ImageProcessingService.swift"]
+    acceptance_criteria: "選択画像が仕様に従って適切に処理される"
+
+  - number: 4
+    title: "TextureManager実装"
+    description: |
+      3Dモデルへのテクスチャ適用:
+      - SCNMaterialのdiffuse設定
+      - テクスチャのキャッシュ管理（LRU、50MB制限）
+      - UV座標の適切な処理
+      - テクスチャ品質設定
+      - 自動ダウンスケール機能
+    estimated_time: 120
+    dependencies: [3]
+    files_to_modify: ["Sources/Services/TextureManager.swift"]
+    acceptance_criteria: "画像が3DモデルのiPhone画面部分に正しく適用される"
+
+  - number: 5
+    title: "画像選択UI作成"
+    description: |
+      画像選択インターフェース:
+      - フローティングアクションボタン
+      - 画像選択モーダル
+      - 選択中の画像プレビュー
+      - 画像クリア機能
+      - 処理中のローディング表示
+    estimated_time: 60
+    dependencies: [4]
+    files_to_modify: ["Sources/Views/ImagePickerView.swift"]
+    acceptance_criteria: "直感的な操作で画像選択・適用ができる"
+
+  - number: 6
+    title: "プレビュー即座反映"
+    description: |
+      リアルタイムプレビュー機能:
+      - 画像選択と同時に3Dモデルに反映
+      - スムーズなアニメーション
+      - パフォーマンス最適化
+      - 60fps維持
+    estimated_time: 75
+    dependencies: [5]
+    files_to_modify: ["Sources/Views/PreviewAreaView.swift"]
+    acceptance_criteria: "画像適用が即座に反映され、滑らかに動作する"
+
+  - number: 7
+    title: "エラーハンドリング強化"
+    description: |
+      画像処理エラーの適切な処理:
+      - 未対応フォーマットエラー
+      - ファイルサイズ過大エラー
+      - メモリ不足エラー
+      - 権限拒否エラー
+      - ユーザーフレンドリーなエラーメッセージ
+    estimated_time: 45
+    dependencies: [6]
+    files_to_modify: ["Sources/Models/ImageError.swift", "Sources/Views/ErrorAlertView.swift"]
+    acceptance_criteria: "全エラーケースが適切に処理され、分かりやすいメッセージが表示される"
+
+  - number: 8
+    title: "単体テスト作成"
+    description: |
+      画像処理機能のテスト:
+      - 画像リサイズテスト
+      - フォーマット変換テスト
+      - キャッシュ管理テスト
+      - エラーハンドリングテスト
+      - メモリリークテスト
+    estimated_time: 90
+    dependencies: [7]
+    files_to_modify: ["Tests/Unit/ImageHandlingTests.swift"]
+    acceptance_criteria: "全テストが成功し、80%以上のコードカバレッジ"
+
+# ── メタデータ ─────────────────────────────
+created_at: 2025-08-04T15:00:00+09:00
+updated_at: 2025-08-04T15:00:00+09:00

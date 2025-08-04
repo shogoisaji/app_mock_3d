@@ -1,0 +1,31 @@
+# task_list.yaml
+# タスク一覧管理ファイル
+# バージョン: 1.0
+#
+# このファイルはプロジェクトの全タスクの進捗状況を一覧で管理します。
+# 各タスクのstatusは、対応する task_xxx.yaml ファイルの status と同期させる必要があります。
+# 将来的には、このファイルの更新を自動化するスクリプトの導入を推奨します。
+
+# 凡例:
+# status: backlog | in_progress | done | blocked
+
+task_list:
+  - task_id: "003"
+    status: "backlog"
+    title: "データベース設計"
+    file: "task_003_database_design.yaml"
+
+  - task_id: "002"
+    status: "in_progress"
+    title: "API設計書の作成"
+    file: "task_002_api_specification.yaml"
+
+  - task_id: "004"
+    status: "done"
+    title: "フロントエンド画面設計"
+    file: "task_004_frontend_design.yaml"
+
+  - task_id: "005"
+    status: "blocked"
+    title: "認証機能の実装"
+    file: "task_005_authentication.yaml"

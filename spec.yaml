@@ -1,0 +1,191 @@
+# ───────────────────────────────────────────────
+# AppMock3D ― 仕様書 (v1.0.0)
+# iPhone モックに PNG 画像を貼り付け、3D 空間で操作・保存
+# ───────────────────────────────────────────────
+
+app_specification:
+  name: "AppMock3D"
+  version: "1.0.0"
+  description: "iPhone の 3D モデルに任意 PNG を適用し、自由操作・保存できる iOS アプリ"
+  language: "Swift 5.9"
+  target_ios: "15.0+"
+
+# ───────────
+# 1. 基本機能
+# ───────────
+core_features:
+  image_application:
+    supported_format: "PNG"
+    max_input_resolution: 4,096 # px (長辺)
+    lossless: true
+  three_d_manipulation:
+    rotation: "X/Y/Z 自由回転"
+    translation: "奥行きを含む 3 軸移動"
+    scaling: "0.5×–3.0× 等比拡大縮小"
+    gesture_controls: ["タップ", "ドラッグ", "ピンチ"]
+  preview_system:
+    real_time_rendering: true
+    viewport_mask:
+      outside_area_color: "#000000"
+      outside_area_opacity: 0.5
+      border_color: "#FFFFFF"
+      border_width: 2 # dp
+  export_functionality:
+    output_format: "PNG"
+    quality_levels: ["低", "中", "高", "最高"]
+    background_transparency: true
+    renderer: "SCNRenderer — 60 fps 相当のオフスクリーン描画"
+
+# ───────────
+# 2. 設定項目
+# ───────────
+configuration_options:
+  aspect_ratio:
+    presets:
+      "16:9": 1.777
+      "4:3": 1.333
+      "1:1": 1.000
+      "3:4": 0.750
+      "9:16": 0.562
+    custom:
+      enabled: true
+      min: 0.1
+      max: 10.0
+  dimensions:
+    width:
+      min: 100
+      max: 4,096
+      default: 1,080
+    height:
+      min: 100
+      max: 4,096
+      default: 1,920
+    maintain_aspect_ratio: true
+  background:
+    solid_color:
+      default: "#FFFFFF"
+      color_picker: true
+    transparent: true
+    gradient:
+      enabled: true
+      types: ["linear", "radial"]
+    environment_lighting:
+      intensity_range: [0.0, 2.0]
+      default: 1.0
+  device_models:
+    - name: "iPhone 12"
+      obj: "iphone12.obj"
+    - name: "iPhone 13"
+      obj: "iphone13.obj"
+    - name: "iPhone 14"
+      obj: "iphone14.obj"
+    - name: "iPhone 15"
+      obj: "iphone15.obj"
+
+# ───────────
+# 3. UI / UX
+# ───────────
+user_interface:
+  app_bar:
+    height: 56
+    bg_color: "#FFFFFF"
+    elevation: 4
+    buttons:
+      - id: "btn_save" # PNG 保存
+        icon: "ic_save"
+      - id: "btn_settings" # 設定
+        icon: "ic_settings"
+  preview_area:
+    flexible: true
+    bg_color: "transparent"
+    masked_outside:
+      color: "#000000"
+      opacity: 0.5
+    gestures: ["pan", "pinch", "rotate"]
+  bottom_nav_bar:
+    height: 72
+    bg_color: "#FFFFFF"
+    elevation: 8
+    icons:
+      - { id: "nav_move", icon: "ic_move", tooltip: "移動" }
+      - { id: "nav_scale", icon: "ic_scale", tooltip: "拡大縮小" }
+      - { id: "nav_rotate", icon: "ic_rotate", tooltip: "回転" }
+      - { id: "nav_aspect", icon: "ic_aspect_ratio", tooltip: "アスペクト比" }
+      - { id: "nav_bg", icon: "ic_background", tooltip: "背景" }
+      - { id: "nav_device", icon: "ic_device", tooltip: "端末" }
+  interaction_modes:
+    move:
+      gestures: ["ドラッグ(XY)", "2本指ドラッグ(Z)"]
+    scale:
+      gestures: ["ピンチ"]
+    rotate:
+      gestures: ["回転", "2本指回転(XY)"]
+    aspect_ratio:
+      control_panel: "bottom_sheet"
+    background:
+      control_panel: "bottom_sheet"
+    device:
+      control_panel: "bottom_sheet"
+
+# ───────────
+# 4. 技術仕様
+# ───────────
+technical_specifications:
+  frameworks:
+    primary_3d: "SceneKit"
+    ui: "SwiftUI"
+    shader_language: "Metal Shading Language (optional)"
+  model_format: "OBJ"
+  texture_format: "PNG"
+  performance:
+    texture_cache_limit: "50 MB"
+    target_fps: 60
+    auto_texture_downscale: true
+  device_requirements:
+    metal_required: true
+    min_ram: "2 GB"
+    recommended_ram: "4 GB"
+
+# ───────────
+# 5. データ管理
+# ───────────
+data_management:
+  user_preferences: "UserDefaults (同期可)"
+  project_files:
+    auto_save: true
+    format: "JSON"
+  assets:
+    obj_location: "App Bundle (lazy load)"
+    texture_cache_policy: "LRU"
+
+# ───────────
+# 6. セキュリティ & プライバシー
+# ───────────
+security_privacy:
+  permissions:
+    photo_library: "Read/Write ― 画像選択と保存"
+  local_only_storage: true
+  analytics:
+    crash_reporting: true
+    usage_analytics: false
+
+# ───────────
+# 7. 品質保証
+# ───────────
+quality_assurance:
+  unit_test_coverage: 80 # %
+  ui_automation: "主要フロー"
+  performance_tests: ["メモリリーク", "FPS モニタ"]
+  compatibility:
+    devices: ["iPhone 12 以降"]
+    ios_versions: ["15", "16", "17"]
+
+# ───────────
+# 8. 将来拡張
+# ───────────
+future_enhancements:
+  ar_preview: "ARKit 実寸プレビュー"
+  animation_export: "回転アニメを MP4 出力"
+  cloud_sync: "iCloud 設定同期"
+  template_system: "プリセットレイアウト"
+  batch_processing: "複数画像一括処理"

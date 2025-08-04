@@ -1,0 +1,140 @@
+# task_list.yaml
+# AppMock3D タスク一覧管理ファイル
+# バージョン: 1.0
+# 作成日: 2025-08-04
+#
+# このファイルはAppMock3D開発プロジェクトの全タスクの進捗状況を一覧で管理します。
+# 各タスクのstatusは、対応する task_xxx.yaml ファイルの status と同期させる必要があります。
+
+# 凡例:
+# status: backlog | in_progress | done | blocked
+# priority: 1(最高) ~ 3(最低)
+
+task_list:
+  - task_id: "001"
+    status: "backlog"
+    title: "Xcodeプロジェクト初期設定"
+    file: "task_001_project_setup.yaml"
+    priority: 1
+    tags: ["project-setup", "xcode", "foundation"]
+    estimated_total_time: 155 # 分
+    description: "Xcodeプロジェクト作成、フレームワーク設定、基本構造構築"
+
+  - task_id: "002"
+    status: "backlog"
+    title: "3Dモデル管理システム実装"
+    file: "task_002_3d_model_system.yaml"
+    priority: 1
+    tags: ["3d", "scenekit", "models", "core"]
+    estimated_total_time: 540 # 分
+    description: "SceneKit設定、OBJモデル読み込み、3D表示システム構築"
+    dependencies: ["001"]
+
+  - task_id: "003"
+    status: "backlog"
+    title: "基本UI構築"
+    file: "task_003_basic_ui.yaml"
+    priority: 1
+    tags: ["ui", "swiftui", "design", "navigation"]
+    estimated_total_time: 495 # 分
+    description: "SwiftUI基本画面、ナビゲーション、レイアウト構築"
+    dependencies: ["001", "002"]
+
+  - task_id: "004"
+    status: "backlog"
+    title: "画像選択・適用機能実装"
+    file: "task_004_image_handling.yaml"
+    priority: 2
+    tags: ["image", "photos", "texture", "core"]
+    estimated_total_time: 525 # 分
+    description: "PNG画像選択、処理、3Dモデルへのテクスチャ適用"
+    dependencies: ["002", "003"]
+
+  - task_id: "005"
+    status: "backlog"
+    title: "3D操作機能実装"
+    file: "task_005_3d_manipulation.yaml"
+    priority: 2
+    tags: ["3d", "gestures", "manipulation", "interaction"]
+    estimated_total_time: 600 # 分
+    description: "3D回転・移動・拡大縮小、ジェスチャー操作システム"
+    dependencies: ["002", "003"]
+
+  - task_id: "006"
+    status: "backlog"
+    title: "PNG エクスポート機能実装"
+    file: "task_006_export_system.yaml"
+    priority: 2
+    tags: ["export", "png", "rendering", "save"]
+    estimated_total_time: 585 # 分
+    description: "高品質PNG出力、品質設定、写真ライブラリ保存"
+    dependencies: ["004", "005"]
+
+  - task_id: "007"
+    status: "backlog"
+    title: "設定画面・機能実装"
+    file: "task_007_settings_ui.yaml"
+    priority: 3
+    tags: ["settings", "ui", "configuration", "bottomsheet"]
+    estimated_total_time: 705 # 分
+    description: "アスペクト比、背景、デバイス選択等の設定UI"
+    dependencies: ["003", "006"]
+
+# プロジェクト統計
+project_statistics:
+  total_tasks: 7
+  total_estimated_time: 3610 # 分 (約60時間)
+  tasks_by_priority:
+    priority_1: 3 # 必須・基盤機能
+    priority_2: 3 # 主要機能
+    priority_3: 1 # 拡張機能
+  tasks_by_status:
+    backlog: 7
+    in_progress: 0
+    done: 0
+    blocked: 0
+
+# 開発フェーズ推奨順序
+development_phases:
+  phase_1_foundation:
+    description: "基盤システム構築"
+    tasks: ["001", "002", "003"]
+    estimated_duration: "2-3週間"
+    
+  phase_2_core_features:
+    description: "主要機能実装"
+    tasks: ["004", "005"]
+    estimated_duration: "2-3週間"
+    
+  phase_3_export_system:
+    description: "出力・保存機能"
+    tasks: ["006"]
+    estimated_duration: "1-2週間"
+    
+  phase_4_polish:
+    description: "設定・最終調整"
+    tasks: ["007"]
+    estimated_duration: "1週間"
+
+# 品質保証計画
+quality_assurance:
+  unit_test_coverage_target: 80 # %
+  ui_test_coverage: "主要フロー"
+  performance_targets:
+    - "60fps 3D描画"
+    - "メモリ使用量 50MB以下（テクスチャキャッシュ）"
+    - "アプリ起動時間 3秒以内"
+    - "PNG出力時間 10秒以内（高品質）"
+  device_compatibility:
+    - "iPhone 12以降"
+    - "iOS 15.0+"
+    - "Metal対応必須"
+
+# メタデータ
+metadata:
+  version: "1.0"
+  created_at: "2025-08-04T15:00:00+09:00"
+  updated_at: "2025-08-04T15:00:00+09:00"
+  project_name: "AppMock3D"
+  project_version: "1.0.0"
+  maintainer: "AppMock3D Development Team"

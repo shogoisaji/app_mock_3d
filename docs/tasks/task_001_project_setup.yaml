@@ -1,0 +1,142 @@
+# task_001_project_setup.yaml
+# AppMock3D Xcodeプロジェクト初期設定
+# 作成日: 2025-08-04
+
+# ── 基本情報 ─────────────────────────────
+task_id: 001
+title: "Xcodeプロジェクト初期設定"
+parent_task_id: null
+status: backlog
+priority: 1
+tags: ["project-setup", "xcode", "foundation"]
+
+# ── 進捗管理 ─────────────────────────────
+progress:
+  completed_steps: []
+  current_step: 1
+  blockers: []
+  notes: ""
+
+# ── 必要素材 ───────────────────────────
+inputs:
+  - title: "アプリ仕様書"
+    status: present
+    description: "AppMock3Dの詳細仕様"
+    items: ["spec.yaml"]
+    required: true
+  - title: "Xcodeインストール"
+    status: pending
+    description: "Xcode 15+ のインストール"
+    items: ["Xcode 15.0+"]
+    required: true
+  - title: "iOS SDKアクセス"
+    status: pending
+    description: "iOS 15.0+ SDK"
+    items: ["iOS SDK 15.0+"]
+    required: true
+  - title: "3Dモデルアセット"
+    status: absent
+    description: "iPhone OBJモデルファイル"
+    items: ["iphone12.obj", "iphone13.obj", "iphone14.obj", "iphone15.obj"]
+    required: false
+
+# ── 期待成果物 ─────────────────────────
+outputs:
+  - title: "Xcodeプロジェクトファイル"
+    status: pending
+    items: ["AppMock3D.xcodeproj"]
+  - title: "基本ディレクトリ構造"
+    status: pending
+    items: ["Sources/", "Resources/", "Tests/"]
+  - title: "Package.swift設定"
+    status: pending
+    items: ["Package.swift"]
+  - title: "Info.plist設定"
+    status: pending
+    items: ["Info.plist"]
+
+# ── 実装ステップ ───────────────────────
+steps:
+  - number: 1
+    title: "新規Xcodeプロジェクト作成"
+    description: |
+      Xcodeで新規iOSアプリプロジェクトを作成。
+      - App名: AppMock3D
+      - Bundle ID: com.appmock3d.app
+      - Language: Swift
+      - Interface: SwiftUI
+      - Minimum Deployment: iOS 15.0
+    estimated_time: 15
+    dependencies: []
+    files_to_modify: ["AppMock3D.xcodeproj"]
+    acceptance_criteria: "Xcodeプロジェクトが正常に作成され、ビルドが通る"
+
+  - number: 2
+    title: "フォルダ構造設定"
+    description: |
+      プロジェクト内のフォルダ構造を整理:
+      - Sources/Views/ (SwiftUI画面)
+      - Sources/Models/ (データモデル)
+      - Sources/Services/ (ビジネスロジック)
+      - Sources/Utils/ (ユーティリティ)
+      - Resources/Assets/ (画像・3Dモデル)
+      - Tests/Unit/ (単体テスト)
+      - Tests/UI/ (UIテスト)
+    estimated_time: 20
+    dependencies: [1]
+    files_to_modify: ["プロジェクト構造"]
+    acceptance_criteria: "適切なフォルダ構造が作成され、Xcodeで認識される"
+
+  - number: 3
+    title: "SceneKit・SwiftUI設定"
+    description: |
+      必要なフレームワークをプロジェクトに追加:
+      - SceneKit (3D描画)
+      - SwiftUI (UI)
+      - Photos (画像選択)
+      - PhotosUI (画像ピッカー)
+    estimated_time: 30
+    dependencies: [2]
+    files_to_modify: ["AppMock3D.xcodeproj", "Package.swift"]
+    acceptance_criteria: "全フレームワークがインポート可能で、基本的な使用ができる"
+
+  - number: 4
+    title: "Info.plist権限設定"
+    description: |
+      必要な権限とアプリ情報を設定:
+      - NSPhotoLibraryUsageDescription
+      - NSPhotoLibraryAddUsageDescription
+      - CFBundleDisplayName: AppMock3D
+      - CFBundleVersion/CFBundleShortVersionString
+    estimated_time: 15
+    dependencies: [3]
+    files_to_modify: ["Info.plist"]
+    acceptance_criteria: "適切な権限設定が完了し、写真アクセスが可能"
+
+  - number: 5
+    title: "基本アプリ構造作成"
+    description: |
+      AppMock3Dアプリの基本構造を作成:
+      - ContentView.swift (メイン画面)
+      - AppMock3DApp.swift (アプリエントリーポイント)
+      - 基本的なナビゲーション構造
+    estimated_time: 45
+    dependencies: [4]
+    files_to_modify: ["ContentView.swift", "AppMock3DApp.swift"]
+    acceptance_criteria: "アプリが起動し、基本画面が表示される"
+
+  - number: 6
+    title: "動作確認とビルドテスト"
+    description: |
+      プロジェクト設定の動作確認:
+      - Debug/Releaseビルドが成功
+      - Simulatorでの実行確認
+      - 実機での動作確認（可能であれば）
+    estimated_time: 30
+    dependencies: [5]
+    files_to_modify: []
+    acceptance_criteria: "全ビルド構成でエラーなく動作し、基本画面が表示される"
+
+# ── メタデータ ─────────────────────────────
+created_at: 2025-08-04T15:00:00+09:00
+updated_at: 2025-08-04T15:00:00+09:00

@@ -1,0 +1,185 @@
+# task_###_(内容説明).yaml
+# テンプレートバージョン: 1.1
+# 必須フィールドはすべて入力してください
+# ファイル名の命名規則: task_[3桁番号]_[内容説明].yaml
+# 例: task_001_user_authentication.yaml, task_002_database_setup.yaml
+
+# ── 基本情報 ─────────────────────────────
+task_id: 000 # 必須: 3桁の数値 (例: 001, 123)
+title: "ここにタスク名" # 必須: 簡潔で具体的なタスク名
+parent_task_id: null # 親タスクID（親が無ければ null）
+status: backlog # 必須: backlog | in_progress | done | blocked
+priority: 3 # 必須: 1(最高) ~ 5(最低)
+tags: [] # タグ (例: ["frontend", "api", "urgent"])
+
+# ── 進捗管理 ─────────────────────────────
+progress:
+  completed_steps: [] # 完了したステップ番号のリスト
+  current_step: 1 # 現在取り組み中のステップ番号
+  blockers: [] # ブロッカーの説明リスト
+  notes: "" # 進捗に関するメモ
+
+# ── 必要素材 ───────────────────────────
+# 各項目のstatus: present(入手済み) | pending(入手予定) | absent(不要・未入手)
+
+inputs:
+  - title: "仕様書リンク" # 必須: 素材の名称
+    status: present # 必須: present | pending | absent
+    description: "機能の詳細仕様" # 任意: 素材の説明
+    items: ["define.md#L120-L145"] # 必須: ファイルパスやURLのリスト
+    required: true # 必須: タスク実行に必要かどうか
+  - title: "デザインモック"
+    status: pending
+    description: "UI/UXデザインファイル"
+    items: ["figma://profile_edit"]
+    required: true
+  - title: "依存 PR"
+    status: absent
+    description: "前提となるPull Request"
+    items: ["pr:123"]
+    required: false
+  - title: "環境設定ファイル"
+    status: present
+    description: "設定ファイルのサンプル"
+    items: [".env.sample"]
+    required: true
+
+# ── 期待成果物 ─────────────────────────
+# 各項目のstatus: pending(未完了) | done(完了) | failed(失敗)
+# 注意: outputs がすべて done・failed になったタイミングでタスク完了
+
+outputs:
+  - title: "実装コード" # 必須: 成果物の名称
+    status: pending # 必須: pending | done | failed
+    items: ["src/handlers/users.ts"] # 必須: 作成・更新されるファイルのリスト
+  - title: "単体テスト"
+    status: pending
+    items: ["tests/user_test.ts"]
+  - title: "ドキュメント"
+    status: pending
+    items: ["openapi.yaml"]
+
+# ── 実装ステップ ───────────────────────
+# 実装の手順を明確に定義。各ステップは具体的で測定可能であること
+
+steps:
+  - number: 1 # 必須: ステップ番号
+    title: "モデル更新" # 必須: ステップの簡潔なタイトル
+    description: | # 必須: 詳細な作業内容
+      User モデルに phoneNumber フィールドを追加。
+      参考: docs/erd_v3.2.png
+    estimated_time: 30 # 必須: 見積もり時間（分単位）
+    dependencies: [] # 必須: 前提となるステップ番号のリスト
+    files_to_modify: ["src/models/user.ts"] # 必須: 変更対象ファイル
+    acceptance_criteria: "phoneNumberフィールドが追加され、マイグレーションが作成される" # 必須: 完了条件
+
+  - number: 2
+    title: "API 実装"
+    description: |
+      PUT /users/{id} のバリデーションを追加し、
+      失敗時は HTTP400 を返す。
+    estimated_time: 60
+    dependencies: [1]
+    files_to_modify: ["src/handlers/users.ts", "src/validators/user.ts"]
+    acceptance_criteria: "バリデーションが機能し、適切なHTTPステータスを返す"
+
+  - number: 3
+    title: "テスト追加"
+    description: |
+      単体テスト 3 件と結合テスト 1 件を実装。
+    estimated_time: 90
+    dependencies: [2]
+    files_to_modify:
+      ["tests/user_test.ts", "tests/integration/user_api_test.ts"]
+    acceptance_criteria: "全テストが通過し、カバレッジ基準を満たす"
+
+  - number: 4
+    title: "ドキュメント更新"
+    description: |
+      openapi.yaml と CHANGELOG.md を更新。
+    estimated_time: 30
+    dependencies: [3]
+    files_to_modify: ["openapi.yaml", "CHANGELOG.md"]
+    acceptance_criteria: "API仕様が正確に更新され、変更履歴が記録される"
+
+  - number: 5
+    title: "動作確認"
+    description: |
+      make local で環境起動。curl で正常／異常系を確認。
+    estimated_time: 45
+    dependencies: [4]
+    files_to_modify: []
+    acceptance_criteria: "正常系・異常系ともに期待通りの動作を確認"
+
+# ── メタデータ ─────────────────────────────
+created_at: 2025-08-04T13:00:00+09:00 # 必須: タスク作成日時 (ISO 8601形式)
+updated_at: 2025-08-04T13:00:00+09:00 # 必須: 最終更新日時 (ISO 8601形式)
+
+# ── バリデーション規則 ─────────────────────
+# 以下の規則に従ってタスクを作成してください:
+validation_rules:
+  task_id:
+    format: "3桁の数値 (001-999)"
+    unique: true
+  title:
+    max_length: 50
+    format: "簡潔で具体的な名前"
+  status:
+    allowed_values: ["backlog", "in_progress", "done", "blocked"]
+  priority:
+    allowed_values: [1, 2, 3, 4, 5]
+    description: "1=最高優先度, 5=最低優先度"
+  inputs:
+    required_fields: ["title", "status", "items", "required"]
+    status_values: ["present", "pending", "absent"]
+  outputs:
+    required_fields: ["title", "status", "items"]
+    status_values: ["pending", "done", "failed"]
+  steps:
+    required_fields:
+      [
+        "number",
+        "title",
+        "description",
+        "estimated_time",
+        "dependencies",
+        "files_to_modify",
+        "acceptance_criteria",
+      ]
+    dependencies_format: "ステップ番号のリスト"
+# ── 使用ガイド ─────────────────────────────
+# このテンプレートの使い方:
+#
+# 1. 基本情報セクション
+#    - task_id: 3桁の数値で一意にする (例: 001, 123)
+#    - title: 50文字以内で具体的に記述
+#
+# 2. 必要素材セクション
+#    - すべての依存関係を明記
+#    - required: true/false で必須度を明確化
+#    - status を定期的に更新
+#
+# 3. 期待成果物セクション
+#    - 具体的なファイル名を記載
+#    - status で完了状況を管理
+#
+# 4. 実装ステップセクション
+#    - dependencies で順序関係を明確化
+#    - estimated_time で見積もりを記録 (分単位)
+#    - files_to_modify で影響範囲を把握
+#
+# 5. 進捗管理
+#    - completed_steps を定期的に更新
+#    - blockers で課題を共有
+#
+# 記入例:
+# task_id: 123
+# title: "ユーザープロフィール編集機能の実装"
+# tags: ["frontend", "api", "high-priority"]
+#
+# 品質チェックリスト:
+# □ 必須フィールドがすべて記入されている
+# □ dependencies が正しく設定されている
+# □ estimated_time が現実的である
+# □ files_to_modify が完全である
+# □ outputs の status が適切に管理されている
