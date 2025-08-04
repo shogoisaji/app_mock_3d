@@ -6,16 +6,16 @@
 task_id: 001
 title: "Xcodeプロジェクト初期設定"
 parent_task_id: null
-status: backlog
+status: done
 priority: 1
 tags: ["project-setup", "xcode", "foundation"]
 
 # ── 進捗管理 ─────────────────────────────
 progress:
-  completed_steps: []
-  current_step: 1
+  completed_steps: [2, 3, 4, 5, 6]
+  current_step: 6
   blockers: []
-  notes: ""
+  notes: "フォルダ構造が作成されました。SceneKitとSwiftUIがプロジェクトに追加されました。Info.plistの権限設定が完了しました。基本的なアプリ構造が作成されました。ビルドテストが成功しました。"
 
 # ── 必要素材 ───────────────────────────
 inputs:

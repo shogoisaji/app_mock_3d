@@ -6,16 +6,16 @@
 task_id: 007
 title: "設定画面・機能実装"
 parent_task_id: null
-status: backlog
+status: done
 priority: 3
 tags: ["settings", "ui", "configuration", "bottomsheet"]
 
 # ── 進捗管理 ─────────────────────────────
 progress:
-  completed_steps: []
-  current_step: 1
+  completed_steps: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  current_step: 0
   blockers: []
-  notes: ""
+  notes: "設定データモデル、ボトムシート基盤、各種設定UIが完成しました。単体テストとUIテストが完成しました。タスクは完了しました。"
 
 # ── 必要素材 ───────────────────────────
 inputs:

@@ -6,16 +6,16 @@
 task_id: 004
 title: "画像選択・適用機能実装"
 parent_task_id: null
-status: backlog
+status: done
 priority: 2
 tags: ["image", "photos", "texture", "core"]
 
 # ── 進捗管理 ─────────────────────────────
 progress:
-  completed_steps: []
-  current_step: 1
+  completed_steps: [1, 2, 3, 4, 5, 6, 7, 8]
+  current_step: 8
   blockers: []
-  notes: ""
+  notes: "画像選択・適用機能の実装が完了しました。"
 
 # ── 必要素材 ───────────────────────────
 inputs:

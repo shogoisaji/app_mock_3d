@@ -6,16 +6,16 @@
 task_id: 005
 title: "3D操作機能実装"
 parent_task_id: null
-status: backlog
+status: in_progress
 priority: 2
 tags: ["3d", "gestures", "manipulation", "interaction"]
 
 # ── 進捗管理 ─────────────────────────────
 progress:
-  completed_steps: []
-  current_step: 1
+  completed_steps: [1, 2, 3, 4, 5, 6]
+  current_step: 6
   blockers: []
-  notes: ""
+  notes: "主要な3D操作機能を実装完了。単体テストも作成済み。"
 
 # ── 必要素材 ───────────────────────────
 inputs:

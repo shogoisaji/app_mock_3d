@@ -12,7 +12,7 @@
 
 task_list:
   - task_id: "001"
-    status: "backlog"
+    status: "done"
     title: "Xcodeプロジェクト初期設定"
     file: "task_001_project_setup.yaml"
     priority: 1
@@ -21,7 +21,7 @@ task_list:
     description: "Xcodeプロジェクト作成、フレームワーク設定、基本構造構築"
 
   - task_id: "002"
-    status: "backlog"
+    status: "done"
     title: "3Dモデル管理システム実装"
     file: "task_002_3d_model_system.yaml"
     priority: 1
@@ -31,7 +31,7 @@ task_list:
     dependencies: ["001"]
 
   - task_id: "003"
-    status: "backlog"
+    status: "done"
     title: "基本UI構築"
     file: "task_003_basic_ui.yaml"
     priority: 1
@@ -41,7 +41,7 @@ task_list:
     dependencies: ["001", "002"]
 
   - task_id: "004"
-    status: "backlog"
+    status: "done"
     title: "画像選択・適用機能実装"
     file: "task_004_image_handling.yaml"
     priority: 2
@@ -51,7 +51,7 @@ task_list:
     dependencies: ["002", "003"]
 
   - task_id: "005"
-    status: "backlog"
+    status: "in_progress"
     title: "3D操作機能実装"
     file: "task_005_3d_manipulation.yaml"
     priority: 2
@@ -61,7 +61,7 @@ task_list:
     dependencies: ["002", "003"]
 
   - task_id: "006"
-    status: "backlog"
+    status: "in_progress"
     title: "PNG エクスポート機能実装"
     file: "task_006_export_system.yaml"
     priority: 2
@@ -71,7 +71,7 @@ task_list:
     dependencies: ["004", "005"]
 
   - task_id: "007"
-    status: "backlog"
+    status: "done"
     title: "設定画面・機能実装"
     file: "task_007_settings_ui.yaml"
     priority: 3
@@ -89,9 +89,9 @@ project_statistics:
     priority_2: 3 # 主要機能
     priority_3: 1 # 拡張機能
   tasks_by_status:
-    backlog: 7
-    in_progress: 0
-    done: 0
+    backlog: 4
+    in_progress: 2
+    done: 1
     blocked: 0
 
 # 開発フェーズ推奨順序

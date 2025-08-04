@@ -6,16 +6,16 @@
 task_id: 002
 title: "3Dモデル管理システム実装"
 parent_task_id: null
-status: backlog
+status: done
 priority: 1
 tags: ["3d", "scenekit", "models", "core"]
 
 # ── 進捗管理 ─────────────────────────────
 progress:
-  completed_steps: []
-  current_step: 1
+  completed_steps: [1, 2, 3]
+  current_step: 3
   blockers: []
-  notes: ""
+  notes: "ModelManagerクラスが作成され、OBJファイルの読み込み機能が実装されました。プレースホルダーOBJファイルも作成されました。"
 
 # ── 必要素材 ───────────────────────────
 inputs:

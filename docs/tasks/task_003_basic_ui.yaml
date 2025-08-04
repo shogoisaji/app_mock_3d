@@ -6,16 +6,16 @@
 task_id: 003
 title: "基本UI構築"
 parent_task_id: null
-status: backlog
+status: done
 priority: 1
 tags: ["ui", "swiftui", "design", "navigation"]
 
 # ── 進捗管理 ─────────────────────────────
 progress:
-  completed_steps: []
-  current_step: 1
+  completed_steps: [1, 2, 3, 4, 5, 6, 7, 8]
+  current_step: 8
   blockers: []
-  notes: ""
+  notes: "AppBarViewとBottomNavViewを作成し、ContentViewに統合しました。PreviewAreaViewも実装し、基本的なUIテストも作成しました。"
 
 # ── 必要素材 ───────────────────────────
 inputs:
