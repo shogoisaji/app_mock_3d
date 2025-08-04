@@ -80,18 +80,28 @@ task_list:
     description: "アスペクト比、背景、デバイス選択等の設定UI"
     dependencies: ["003", "006"]
 
+  - task_id: "008"
+    status: "backlog"
+    title: "画像テクスチャ統合機能の修正実装"
+    file: "task_008_image_texture_integration.yaml"
+    priority: 1
+    tags: ["critical", "integration", "texture", "bugfix"]
+    estimated_total_time: 450 # 分
+    description: "Task 004で実装された個別機能を統合し、画像が3D iPhoneに正しく表示される機能を修正"
+    dependencies: ["004"]
+
 # プロジェクト統計
 project_statistics:
-  total_tasks: 7
-  total_estimated_time: 3610 # 分 (約60時間)
+  total_tasks: 8
+  total_estimated_time: 4060 # 分 (約68時間)
   tasks_by_priority:
-    priority_1: 3 # 必須・基盤機能
+    priority_1: 4 # 必須・基盤機能
     priority_2: 3 # 主要機能
     priority_3: 1 # 拡張機能
   tasks_by_status:
-    backlog: 4
+    backlog: 1
     in_progress: 2
-    done: 1
+    done: 5
     blocked: 0
 
 # 開発フェーズ推奨順序

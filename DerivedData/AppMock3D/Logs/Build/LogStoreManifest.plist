@@ -216,6 +216,48 @@
 			<key>uniqueIdentifier</key>
 			<string>4C0F773D-8556-4D8D-9CB2-5CCD2D971393</string>
 		</dict>
+		<key>4CA36EF4-2669-441A-B0FC-51569DFC15C7</key>
+		<dict>
+			<key>className</key>
+			<string>IDEActivityLogSection</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
+			<key>fileName</key>
+			<string>4CA36EF4-2669-441A-B0FC-51569DFC15C7.xcactivitylog</string>
+			<key>hasPrimaryLog</key>
+			<true/>
+			<key>primaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>E</string>
+				<key>totalNumberOfAnalyzerIssues</key>
+				<integer>0</integer>
+				<key>totalNumberOfErrors</key>
+				<integer>2</integer>
+				<key>totalNumberOfTestFailures</key>
+				<integer>0</integer>
+				<key>totalNumberOfWarnings</key>
+				<integer>1</integer>
+			</dict>
+			<key>schemeIdentifier-containerName</key>
+			<string>AppMock3D project</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>AppMock3D</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Build AppMock3D</string>
+			<key>timeStartedRecording</key>
+			<real>776009673.41060805</real>
+			<key>timeStoppedRecording</key>
+			<real>776009674.58823895</real>
+			<key>title</key>
+			<string>Build AppMock3D</string>
+			<key>uniqueIdentifier</key>
+			<string>4CA36EF4-2669-441A-B0FC-51569DFC15C7</string>
+		</dict>
 		<key>4F081824-ED2C-47B7-A484-6587677E8130</key>
 		<dict>
 			<key>className</key>
@@ -551,6 +593,48 @@
 			<string>Build (Automatic) AppMock3D</string>
 			<key>uniqueIdentifier</key>
 			<string>A6CB7178-F186-418E-AD14-198AFEBBED2C</string>
+		</dict>
+		<key>A878C9F5-4E97-4106-B986-89BD9A4BFC22</key>
+		<dict>
+			<key>className</key>
+			<string>IDEActivityLogSection</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
+			<key>fileName</key>
+			<string>A878C9F5-4E97-4106-B986-89BD9A4BFC22.xcactivitylog</string>
+			<key>hasPrimaryLog</key>
+			<true/>
+			<key>primaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>S</string>
+				<key>totalNumberOfAnalyzerIssues</key>
+				<integer>0</integer>
+				<key>totalNumberOfErrors</key>
+				<integer>0</integer>
+				<key>totalNumberOfTestFailures</key>
+				<integer>0</integer>
+				<key>totalNumberOfWarnings</key>
+				<integer>0</integer>
+			</dict>
+			<key>schemeIdentifier-containerName</key>
+			<string>AppMock3D project</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>AppMock3D</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Build AppMock3D</string>
+			<key>timeStartedRecording</key>
+			<real>776009575.97795701</real>
+			<key>timeStoppedRecording</key>
+			<real>776009576.28874099</real>
+			<key>title</key>
+			<string>Build AppMock3D</string>
+			<key>uniqueIdentifier</key>
+			<string>A878C9F5-4E97-4106-B986-89BD9A4BFC22</string>
 		</dict>
 		<key>A8868573-E53E-4EB2-84C8-A2BF7B1E90E1</key>
 		<dict>

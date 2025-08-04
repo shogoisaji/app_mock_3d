@@ -1,0 +1,166 @@
+# task_008_image_texture_integration.yaml
+# 画像テクスチャ統合機能の修正実装
+# 作成日: 2025-08-04
+
+# ── 基本情報 ─────────────────────────────
+task_id: 008
+title: "画像テクスチャ統合機能の修正実装"
+parent_task_id: 004
+status: backlog
+priority: 1
+tags: ["critical", "integration", "texture", "bugfix"]
+
+# ── 進捗管理 ─────────────────────────────
+progress:
+  completed_steps: []
+  current_step: 1
+  blockers: []
+  notes: "Task 004で個別機能は実装されたが、統合処理が欠如している重要なバグ修正"
+
+# ── 必要素材 ───────────────────────────
+inputs:
+  - title: "既存画像選択機能"
+    status: present
+    description: "ImagePickerManager.swift の実装"
+    items: ["AppMock3D/ImagePickerManager.swift"]
+    required: true
+  - title: "既存テクスチャ管理機能"
+    status: present
+    description: "TextureManager.swift の実装"
+    items: ["AppMock3D/TextureManager.swift"]
+    required: true
+  - title: "既存3Dモデル表示"
+    status: present
+    description: "PreviewAreaView.swift の実装"
+    items: ["AppMock3D/PreviewAreaView.swift"]
+    required: true
+  - title: "3Dモデルファイル"
+    status: present
+    description: "iphone15.obj モデル"
+    items: ["Resources/Assets/iphone15.obj"]
+    required: true
+
+# ── 期待成果物 ─────────────────────────
+outputs:
+  - title: "統合処理実装"
+    status: pending
+    items: ["AppMock3D/PreviewAreaView.swift", "AppMock3D/ContentView.swift"]
+  - title: "テクスチャ適用修正"
+    status: pending
+    items: ["AppMock3D/TextureManager.swift"]
+  - title: "リアルタイム更新機能"
+    status: pending
+    items: ["AppMock3D/PreviewAreaView.swift"]
+  - title: "統合テスト"
+    status: pending
+    items: ["Tests/Integration/ImageTextureIntegrationTests.swift"]
+
+# ── 実装ステップ ───────────────────────
+steps:
+  - number: 1
+    title: "現状分析と問題特定"
+    description: |
+      既存コードの詳細分析を行い、統合処理の欠落箇所を特定:
+      - ImagePickerManager の selectedImage 監視処理が不在
+      - TextureManager への画像適用呼び出しが不在
+      - PreviewAreaView でのシーン更新処理が不在
+      - ContentView での統合フロー設計欠如
+    estimated_time: 30
+    dependencies: []
+    files_to_modify: []
+    acceptance_criteria: "統合処理の欠落箇所が正確に特定され、修正計画が策定される"
+
+  - number: 2
+    title: "TextureManager 修正"
+    description: |
+      iPhoneモデルの画面部分のみにテクスチャを適用する機能を修正:
+      - モデル全体ではなく画面ノードを特定
+      - 画面マテリアルのみを更新
+      - UV座標の正確な適用
+      - テクスチャ品質の最適化
+    estimated_time: 90
+    dependencies: [1]
+    files_to_modify: ["AppMock3D/TextureManager.swift"]
+    acceptance_criteria: "選択画像がiPhoneモデルの画面部分のみに正確に適用される"
+
+  - number: 3
+    title: "PreviewAreaView 統合処理実装"
+    description: |
+      画像選択時の自動テクスチャ適用と3Dシーン更新:
+      - ImagePickerManager.selectedImage の監視
+      - 画像変更時の TextureManager 呼び出し
+      - 更新されたシーンのリアルタイム反映
+      - アニメーション効果の追加
+    estimated_time: 75
+    dependencies: [2]
+    files_to_modify: ["AppMock3D/PreviewAreaView.swift"]
+    acceptance_criteria: "画像選択と同時に3Dモデルが自動更新される"
+
+  - number: 4
+    title: "ContentView 統合フロー実装"
+    description: |
+      メインビューでの統合フローの実装:
+      - AppState での画像状態管理
+      - sceneView の動的更新処理
+      - エラー状態の適切な処理
+      - ローディング状態の表示
+    estimated_time: 60
+    dependencies: [3]
+    files_to_modify: ["AppMock3D/ContentView.swift", "AppMock3D/AppState.swift"]
+    acceptance_criteria: "アプリ全体で一貫した画像適用フローが動作する"
+
+  - number: 5
+    title: "パフォーマンス最適化"
+    description: |
+      統合処理のパフォーマンス最適化:
+      - 不要なシーン再作成の防止
+      - テクスチャキャッシュの効率化
+      - メモリ使用量の監視と制限
+      - 60fps維持の確認
+    estimated_time: 45
+    dependencies: [4]
+    files_to_modify: ["AppMock3D/TextureManager.swift", "AppMock3D/PreviewAreaView.swift"]
+    acceptance_criteria: "画像適用処理が60fps を維持し、メモリ使用量が50MB以下"
+
+  - number: 6
+    title: "エラーハンドリング強化"
+    description: |
+      統合処理でのエラーハンドリング:
+      - 3Dモデル読み込み失敗時の処理
+      - テクスチャ適用失敗時の処理
+      - メモリ不足時の処理
+      - ユーザーへの適切なフィードバック
+    estimated_time: 40
+    dependencies: [5]
+    files_to_modify: ["AppMock3D/PreviewAreaView.swift", "AppMock3D/ContentView.swift"]
+    acceptance_criteria: "全エラーケースが適切に処理され、アプリがクラッシュしない"
+
+  - number: 7
+    title: "統合テスト作成"
+    description: |
+      画像からテクスチャ適用までの統合テスト:
+      - 画像選択からテクスチャ適用までのフルフロー
+      - 異なる画像サイズでのテスト
+      - パフォーマンステスト
+      - メモリリークテスト
+    estimated_time: 90
+    dependencies: [6]
+    files_to_modify: ["Tests/Integration/ImageTextureIntegrationTests.swift"]
+    acceptance_criteria: "統合フローの全テストが成功し、仕様を満たす"
+
+  - number: 8
+    title: "動作確認と最終調整"
+    description: |
+      実機での動作確認と微調整:
+      - iPhone実機での動作テスト
+      - 様々な画像での動作確認
+      - UI/UX の最終調整
+      - パフォーマンス計測と調整
+    estimated_time: 60
+    dependencies: [7]
+    files_to_modify: []
+    acceptance_criteria: "実機で完璧に動作し、全要件を満たす"
+
+# ── メタデータ ─────────────────────────────
+created_at: 2025-08-04T16:00:00+09:00
+updated_at: 2025-08-04T16:00:00+09:00

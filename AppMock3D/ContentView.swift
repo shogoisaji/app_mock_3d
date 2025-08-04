@@ -37,9 +37,11 @@ struct ContentView: View {
             }
             
             // Settings View presented as bottom sheet
-            SettingsView(appState: appState)
-                .zIndex(1)
-                .accessibilityIdentifier("Settings View")
+            if appState.isSettingsPresented {
+                SettingsView(appState: appState)
+                    .zIndex(1)
+                    .accessibilityIdentifier("Settings View")
+            }
                 
             // Bottom Navigation Bar
             BottomNavView(appState: appState)
