@@ -24,8 +24,7 @@ struct AspectRatioSettingsView: View {
                         Text(preset.rawValue).tag(preset)
                     }
                 }
-                .pickerStyle(WheelPickerStyle())
-                .frame(height: 100)
+                .pickerStyle(SegmentedPickerStyle())
             }
             
             // Custom aspect ratio

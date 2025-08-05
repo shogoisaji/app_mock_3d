@@ -29,7 +29,7 @@ struct PreviewAreaView: View {
                 
                 // 1) プレビュー領域のサイズを算出（白枠）
                 let previewWidth = geometry.size.width
-                let previewHeight = geometry.size.width * appState.aspectRatio
+                let previewHeight = geometry.size.width / appState.aspectRatio
                 let previewSize = CGSize(width: previewWidth, height: previewHeight)
                 
                 // 2) SCNView を重ね、見た目のままあとでキャプチャできるようにホスト

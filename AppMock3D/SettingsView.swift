@@ -13,19 +13,44 @@ struct SettingsView: View {
                 .padding()
             
             // アスペクト比設定
-            Button(action: {
-                showingAspectRatioSettings = true
-            }) {
+            VStack {
                 HStack {
                     Text("アスペクト比")
                     Spacer()
                     Text(getAspectRatioText())
+                    Rectangle()
+                        .fill(Color(.systemGray4))
+                        .frame(width: getPreviewWidth(), height: getPreviewHeight())
+                        .cornerRadius(2)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 2)
+                                .stroke(Color.gray, lineWidth: 1)
+                        )
                     Image(systemName: "chevron.right")
+                        .rotationEffect(.degrees(showingAspectRatioSettings ? 90 : 0))
                 }
-                .padding()
-                .background(Color(.systemGray6))
-                .cornerRadius(8)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    withAnimation {
+                        showingAspectRatioSettings.toggle()
+                    }
+                }
+
+                if showingAspectRatioSettings {
+                    VStack(alignment: .leading, spacing: 15) {
+                        Picker("アスペクト比プリセット", selection: $appState.settings.aspectRatioPreset) {
+                            ForEach(AppSettings.AspectRatioPreset.allCases, id: \.self) { preset in
+                                Text(preset.rawValue)
+                            }
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                    }
+                    .padding(.top, 10)
+                }
             }
+            .padding()
+            .background(Color(.systemGray6))
+            .cornerRadius(8)
             
             // 背景設定
             VStack {
@@ -121,15 +146,6 @@ struct SettingsView: View {
         .cornerRadius(10)
         .shadow(radius: 5)
         
-        // Aspect Ratio Bottom Sheet
-        BottomSheetManager(
-            isOpen: $showingAspectRatioSettings,
-            content: AspectRatioSettingsView(settings: $appState.settings, isPresented: $showingAspectRatioSettings),
-            height: 350
-        )
-        
-        
-        
         // Device Selection Bottom Sheet
         BottomSheetManager(
             isOpen: $showingDeviceSelection,
@@ -153,6 +169,43 @@ struct SettingsView: View {
             return "3:4"
         case .nineToSixteen:
             return "9:16"
+        }
+    }
+    
+    private func getAspectRatio() -> Double {
+        switch appState.settings.aspectRatioPreset {
+        case .sixteenToNine:
+            return 16.0 / 9.0
+        case .fourToThree:
+            return 4.0 / 3.0
+        case .oneToOne:
+            return 1.0
+        case .threeToFour:
+            return 3.0 / 4.0
+        case .nineToSixteen:
+            return 9.0 / 16.0
+        }
+    }
+    
+    private func getPreviewWidth() -> CGFloat {
+        let aspectRatio = getAspectRatio()
+        let baseSize: CGFloat = 24
+        
+        if aspectRatio >= 1.0 {
+            return baseSize
+        } else {
+            return baseSize * aspectRatio
+        }
+    }
+    
+    private func getPreviewHeight() -> CGFloat {
+        let aspectRatio = getAspectRatio()
+        let baseSize: CGFloat = 24
+        
+        if aspectRatio >= 1.0 {
+            return baseSize / aspectRatio
+        } else {
+            return baseSize
         }
     }
 }
