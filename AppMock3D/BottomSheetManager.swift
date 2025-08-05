@@ -57,6 +57,7 @@ struct BottomSheetManager<Content: View>: View {
             }
             .edgesIgnoringSafeArea(.all)
         }
+        .zIndex(1)
     }
 }
 

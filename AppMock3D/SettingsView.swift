@@ -2,7 +2,6 @@ import SwiftUI
 
 struct SettingsView: View {
     @ObservedObject var appState: AppState
-    @State private var settings = AppSettings.load()
     @State private var showingAspectRatioSettings = false
     @State private var showingBackgroundSettings = false
     @State private var showingDeviceSelection = false
@@ -29,19 +28,76 @@ struct SettingsView: View {
             }
             
             // 背景設定
-            Button(action: {
-                showingBackgroundSettings = true
-            }) {
+            VStack {
                 HStack {
                     Text("背景")
                     Spacer()
-                    Text(settings.backgroundColor.rawValue)
+                    if appState.settings.backgroundColor == .solidColor {
+                        Rectangle()
+                            .fill(Color(hex: appState.settings.solidColorValue) ?? .white)
+                            .frame(width: 24, height: 24)
+                            .cornerRadius(4)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 4)
+                                    .stroke(Color.gray, lineWidth: 1)
+                            )
+                    } else {
+                        Text(appState.settings.gradientType.rawValue)
+                    }
                     Image(systemName: "chevron.right")
+                        .rotationEffect(.degrees(showingBackgroundSettings ? 90 : 0))
                 }
-                .padding()
-                .background(Color(.systemGray6))
-                .cornerRadius(8)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    withAnimation {
+                        showingBackgroundSettings.toggle()
+                    }
+                }
+
+                if showingBackgroundSettings {
+                    VStack(alignment: .leading, spacing: 15) {
+                        Picker("背景タイプ", selection: $appState.settings.backgroundColor) {
+                            ForEach(AppSettings.BackgroundColorSetting.allCases, id: \.self) { type in
+                                Text(type.rawValue)
+                            }
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+
+                        if appState.settings.backgroundColor == .solidColor {
+                            ColorPicker("背景色", selection: Binding(get: {
+                                Color(hex: appState.settings.solidColorValue) ?? Color.white
+                            }, set: { color in
+                                appState.settings.solidColorValue = color.toHex()
+                            }))
+                        }
+
+                        if appState.settings.backgroundColor == .gradient {
+                            Picker("グラデーション", selection: $appState.settings.gradientType) {
+                                ForEach(AppSettings.GradientType.allCases, id: \.self) { type in
+                                    Text(type.rawValue)
+                                }
+                            }
+                            .pickerStyle(SegmentedPickerStyle())
+
+                            ColorPicker("開始色", selection: Binding(get: {
+                                Color(hex: appState.settings.gradientStartColor) ?? .white
+                            }, set: { color in
+                                appState.settings.gradientStartColor = color.toHex()
+                            }))
+
+                            ColorPicker("終了色", selection: Binding(get: {
+                                Color(hex: appState.settings.gradientEndColor) ?? .black
+                            }, set: { color in
+                                appState.settings.gradientEndColor = color.toHex()
+                            }))
+                        }
+                    }
+                    .padding(.top, 10)
+                }
             }
+            .padding()
+            .background(Color(.systemGray6))
+            .cornerRadius(8)
             
             // 端末選択設定
             Button(action: {
@@ -50,7 +106,7 @@ struct SettingsView: View {
                 HStack {
                     Text("端末モデル")
                     Spacer()
-                    Text(settings.currentDeviceModel.rawValue)
+                    Text(appState.settings.currentDeviceModel.rawValue)
                     Image(systemName: "chevron.right")
                 }
                 .padding()
@@ -68,27 +124,25 @@ struct SettingsView: View {
         // Aspect Ratio Bottom Sheet
         BottomSheetManager(
             isOpen: $showingAspectRatioSettings,
-            content: AspectRatioSettingsView(settings: $settings, isPresented: $showingAspectRatioSettings),
+            content: AspectRatioSettingsView(settings: $appState.settings, isPresented: $showingAspectRatioSettings),
             height: 350
         )
         
-        // Background Bottom Sheet
-        BottomSheetManager(
-            isOpen: $showingBackgroundSettings,
-            content: BackgroundSettingsView(settings: $settings, isPresented: $showingBackgroundSettings),
-            height: 400
-        )
+        
         
         // Device Selection Bottom Sheet
         BottomSheetManager(
             isOpen: $showingDeviceSelection,
-            content: DeviceSelectionView(settings: $settings, isPresented: $showingDeviceSelection),
+            content: DeviceSelectionView(settings: $appState.settings, isPresented: $showingDeviceSelection),
             height: 300
         )
+        .onChange(of: appState.settings) { _, newSettings in
+            newSettings.save()
+        }
     }
     
     private func getAspectRatioText() -> String {
-        switch settings.aspectRatioPreset {
+        switch appState.settings.aspectRatioPreset {
         case .sixteenToNine:
             return "16:9"
         case .fourToThree:

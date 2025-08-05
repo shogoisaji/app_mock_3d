@@ -7,9 +7,7 @@ struct AppBarView: View {
     
     var body: some View {
         HStack {
-            Text(title)
-                .font(.headline)
-                .foregroundColor(.primary)
+            // タイトルを非表示化
             
             Spacer()
             
@@ -30,12 +28,13 @@ struct AppBarView: View {
         .frame(height: 56)
         .background(Color(.systemBackground))
         .shadow(radius: 4)
-        .accessibilityIdentifier(title)
+        // タイトル文字列に依存しない識別子に変更
+        .accessibilityIdentifier("AppBar")
     }
 }
 
 struct AppBarView_Previews: PreviewProvider {
     static var previews: some View {
-        AppBarView(title: "AppMock3D", onSave: {}, onSettings: {})
+        AppBarView(title: "", onSave: {}, onSettings: {})
     }
 }

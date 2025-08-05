@@ -4,7 +4,7 @@ extension Notification.Name {
     static let settingsDidUpdate = Notification.Name("settingsDidUpdate")
 }
 
-struct AppSettings: Codable {
+struct AppSettings: Codable, Equatable {
     // アスペクト比設定
     var aspectRatioPreset: AspectRatioPreset = .sixteenToNine
     var customAspectRatio: Double = 1.777
@@ -18,6 +18,8 @@ struct AppSettings: Codable {
     var backgroundColor: BackgroundColorSetting = .solidColor
     var solidColorValue: String = "#FFFFFF"
     var gradientType: GradientType = .linear
+    var gradientStartColor: String = "#FFFFFF"
+    var gradientEndColor: String = "#000000"
     var environmentLightingIntensity: Double = 1.0
     
     // デバイスモデル選択

@@ -18,12 +18,12 @@ struct ContentView: View {
     var body: some View {
         VStack(spacing: 0) {
             // App Bar
-            AppBarView(title: "AppMock3D", onSave: {
+            AppBarView(title: "", onSave: {
                 // Save functionality
             }, onSettings: {
                 appState.toggleSettings()
             })
-            .accessibilityIdentifier("AppMock3D")
+            .accessibilityIdentifier("AppBar")
             
             // 3D Preview Area
             if let scene = sceneView {
@@ -36,14 +36,13 @@ struct ContentView: View {
                     .accessibilityIdentifier("Loading 3D Model")
             }
             
-            // Settings View presented as bottom sheet
-            SettingsView(appState: appState)
-                .zIndex(1)
-                .accessibilityIdentifier("Settings View")
-                
-            // Bottom Navigation Bar
+            // Settings View is presented as a sheet controlled by appState.isSettingsPresented
             BottomNavView(appState: appState)
                 .accessibilityIdentifier("Bottom Navigation")
+        }
+        .sheet(isPresented: $appState.isSettingsPresented) {
+            SettingsView(appState: appState)
+                .accessibilityIdentifier("Settings View")
         }
         .onAppear {
             // Load the default iPhone model

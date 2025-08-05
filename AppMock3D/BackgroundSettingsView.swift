@@ -1,8 +1,10 @@
 import SwiftUI
+import UIKit
 
 struct BackgroundSettingsView: View {
     @Binding var settings: AppSettings
     @Binding var isPresented: Bool
+    @State private var isColorPickerVisible = false
     
     var body: some View {
         VStack(spacing: 20) {
@@ -30,15 +32,33 @@ struct BackgroundSettingsView: View {
             // Solid color settings
             if settings.backgroundColor == .solidColor {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("単色設定")
-                        .font(.headline)
+                    HStack {
+                        Text("単色設定")
+                            .font(.headline)
+                        Spacer()
+                        Rectangle()
+                            .fill(Color(hex: settings.solidColorValue) ?? Color.white)
+                            .frame(width: 30, height: 30)
+                            .cornerRadius(4)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 4)
+                                    .stroke(Color.gray, lineWidth: 1)
+                            )
+                    }
+                    .onTapGesture {
+                        withAnimation {
+                            isColorPickerVisible.toggle()
+                        }
+                    }
                     
-                    ColorPicker("背景色", selection: Binding(get: {
-                        Color(hex: settings.solidColorValue) ?? Color.white
-                    }, set: { color in
-                        settings.solidColorValue = color.toHex()
-                    }))
-                    .padding()
+                    if isColorPickerVisible {
+                        ColorPicker("背景色", selection: Binding(get: {
+                            Color(hex: settings.solidColorValue) ?? Color.white
+                        }, set: { color in
+                            settings.solidColorValue = color.toHex()
+                        }))
+                        .padding()
+                    }
                 }
             }
             
@@ -101,28 +121,7 @@ struct BackgroundSettingsView: View {
     }
 }
 
-// Extension to convert Color to Hex string and vice versa
-extension Color {
-    init?(hex: String) {
-        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
-        hexSanitized = hexSanitized.replacingOccurrences(of: "#", with: "")
-        
-        var rgb: UInt64 = 0
-        Scanner(string: hexSanitized).scanHexInt64(&rgb)
-        
-        let red = Double((rgb >> 16) & 0xFF) / 255.0
-        let green = Double((rgb >> 8) & 0xFF) / 255.0
-        let blue = Double(rgb & 0xFF) / 255.0
-        
-        self.init(red: red, green: green, blue: blue)
-    }
-    
-    func toHex() -> String {
-        // For simplicity, we'll return a default white color
-        // In a real implementation, you might want to use a more sophisticated approach
-        return "#FFFFFF"
-    }
-}
+
 
 struct BackgroundSettingsView_Previews: PreviewProvider {
     @State static var settings = AppSettings()
