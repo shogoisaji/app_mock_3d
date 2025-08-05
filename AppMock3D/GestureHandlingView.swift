@@ -4,23 +4,29 @@ import SceneKit
 struct GestureHandlingView: UIViewRepresentable {
     var scene: SCNScene
     @ObservedObject var appState: AppState
+
+    // A variable to hold the reference to the main content node
+    private var contentNode: SCNNode? {
+        // Find the node to manipulate.
+        // This could be improved by passing the node or using a specific name.
+        scene.rootNode.childNode(withName: "model", recursively: true) ?? scene.rootNode.childNodes.first
+    }
     
     func makeUIView(context: Context) -> SCNView {
         let scnView = SCNView()
         scnView.scene = scene
-        scnView.allowsCameraControl = true
+        // Disable default camera controls to use custom gestures
+        scnView.allowsCameraControl = false
         scnView.showsStatistics = true
         scnView.backgroundColor = UIColor.systemBackground
         
-        // ジェスチャーを追加
+        // Add pan gesture for rotation (1 finger) and translation (2 fingers)
         let panGesture = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePan(_:)))
         scnView.addGestureRecognizer(panGesture)
         
+        // Add pinch gesture for scaling
         let pinchGesture = UIPinchGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePinch(_:)))
         scnView.addGestureRecognizer(pinchGesture)
-        
-        let rotationGesture = UIRotationGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleRotation(_:)))
-        scnView.addGestureRecognizer(rotationGesture)
         
         return scnView
     }
@@ -35,48 +41,56 @@ struct GestureHandlingView: UIViewRepresentable {
     
     class Coordinator: NSObject {
         var parent: GestureHandlingView
-        
+        var lastPanLocation: CGPoint = .zero
+        var lastRotation: SCNVector3 = SCNVector3Zero
+
         init(_ parent: GestureHandlingView) {
             self.parent = parent
         }
         
         @objc func handlePan(_ gesture: UIPanGestureRecognizer) {
-            guard parent.appState.currentMode == .move else { return }
+            guard let node = parent.contentNode else { return }
             
             let translation = gesture.translation(in: gesture.view)
-            // 移動処理の実装
-            print("Pan gesture detected with translation: \(translation)")
             
-            // ここで3Dオブジェクトの移動処理を実装
-            // 例: selectedNode?.position = SCNVector3(selectedNode!.position.x + Float(translation.x), selectedNode!.position.y + Float(translation.y), selectedNode!.position.z)
+            switch gesture.numberOfTouches {
+            case 1: // 1-finger pan for rotation
+                let rotationX = Float(translation.y) * 0.005
+                let rotationY = Float(translation.x) * 0.005
+                
+                let newEulerX = node.eulerAngles.x + rotationX
+                let newEulerY = node.eulerAngles.y + rotationY
+                
+                node.eulerAngles = SCNVector3(newEulerX, newEulerY, node.eulerAngles.z)
+
+            case 2: // 2-finger pan for movement
+                let moveX = Float(translation.x) * 0.01
+                let moveY = Float(translation.y) * -0.01 // Invert Y-axis for natural movement
+                
+                node.position.x += moveX
+                node.position.y += moveY
+
+            default:
+                break
+            }
             
             gesture.setTranslation(.zero, in: gesture.view)
         }
         
         @objc func handlePinch(_ gesture: UIPinchGestureRecognizer) {
-            guard parent.appState.currentMode == .scale else { return }
+            guard let node = parent.contentNode else { return }
             
-            let scale = gesture.scale
-            // 拡大縮小処理の実装
-            print("Pinch gesture detected with scale: \(scale)")
+            let scale = Float(gesture.scale)
             
-            // ここで3Dオブジェクトのスケーリング処理を実装
-            // 例: selectedNode?.scale = SCNVector3(Float(scale), Float(scale), Float(scale))
+            // Apply scale incrementally
+            let newScaleX = node.scale.x * scale
+            let newScaleY = node.scale.y * scale
+            let newScaleZ = node.scale.z * scale
             
+            node.scale = SCNVector3(newScaleX, newScaleY, newScaleZ)
+            
+            // Reset gesture scale to 1 for incremental scaling
             gesture.scale = 1.0
-        }
-        
-        @objc func handleRotation(_ gesture: UIRotationGestureRecognizer) {
-            guard parent.appState.currentMode == .rotate else { return }
-            
-            let rotation = gesture.rotation
-            // 回転処理の実装
-            print("Rotation gesture detected with rotation: \(rotation)")
-            
-            // ここで3Dオブジェクトの回転処理を実装
-            // 例: selectedNode?.eulerAngles = SCNVector3(selectedNode!.eulerAngles.x, selectedNode!.eulerAngles.y, Float(rotation))
-            
-            gesture.rotation = 0
         }
     }
 }

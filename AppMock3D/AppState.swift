@@ -1,7 +1,7 @@
 import SwiftUI
 
 class AppState: ObservableObject {
-    @Published var currentMode: InteractionMode = .move
+    
     @Published var isSettingsPresented: Bool = false
     @Published var settings: AppSettings = AppSettings.load()
     
@@ -15,9 +15,7 @@ class AppState: ObservableObject {
     @Published var imageError: String?
     @Published var hasImageApplied: Bool = false
     
-    func setMode(_ mode: InteractionMode) {
-        currentMode = mode
-    }
+    
     
     func toggleSettings() {
         isSettingsPresented.toggle()

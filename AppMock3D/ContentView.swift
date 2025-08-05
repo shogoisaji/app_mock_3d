@@ -14,8 +14,12 @@ struct ContentView: View {
     @StateObject private var appState = AppState()
     @StateObject private var imagePickerManager = ImagePickerManager()
     @StateObject private var photoPermissionManager = PhotoPermissionManager()
+    @StateObject private var photoSaveManager = PhotoSaveManager()
     @State private var sceneView: SCNScene?
     @State private var showingImagePicker = false
+    @State private var isSaving = false
+    @State private var showSaveSuccessAlert = false
+    @State private var showSaveErrorAlert = false
     
     var body: some View {
         ZStack {
@@ -66,6 +70,20 @@ struct ContentView: View {
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .background(Color.black.opacity(0.7))
                         }
+                        
+                        // 保存中の表示
+                        if isSaving {
+                            VStack {
+                                ProgressView()
+                                    .scaleEffect(1.5)
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                Text("画像を保存中...")
+                                    .foregroundColor(.white)
+                                    .padding(.top)
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(Color.black.opacity(0.5))
+                        }
                     }
                 } else {
                     Text("3Dモデルを読み込んでいます...")
@@ -79,7 +97,25 @@ struct ContentView: View {
             VStack(spacing: 0) {
                 // 上部 AppBar（Safe Area 内）
                 AppBarView(title: "", onSave: {
-                    // Save functionality
+                    isSaving = true
+                    if let scene = sceneView {
+                        let renderingEngine = RenderingEngine(scene: scene)
+                        renderingEngine.renderImage(withQuality: .high, backgroundColor: UIColor(appState.backgroundColor)) { image in
+                            if let image = image {
+                                photoSaveManager.saveImageToPhotoLibrary(image) { success, error in
+                                    isSaving = false
+                                    if success {
+                                        showSaveSuccessAlert = true
+                                    } else {
+                                        showSaveErrorAlert = true
+                                    }
+                                }
+                            } else {
+                                isSaving = false
+                                showSaveErrorAlert = true
+                            }
+                        }
+                    }
                 }, onSettings: {
                     appState.toggleSettings()
                 }, onImageSelect: {
@@ -90,9 +126,7 @@ struct ContentView: View {
                 
                 Spacer()
                 
-                // 下部ナビ（Safe Area 内）
-                BottomNavView(appState: appState)
-                    .accessibilityIdentifier("Bottom Navigation")
+                
             }
             .padding(.horizontal, 0)
             // Safe Area を尊重（ここでは ignoresSafeArea を適用しない）
@@ -134,6 +168,16 @@ struct ContentView: View {
                         }
                     }
             }
+        }
+        .alert("保存完了", isPresented: $showSaveSuccessAlert) {
+            Button("OK") { }
+        } message: {
+            Text("画像をフォトライブラリに保存しました。")
+        }
+        .alert("保存エラー", isPresented: $showSaveErrorAlert) {
+            Button("OK") { }
+        } message: {
+            Text("画像の保存に失敗しました。")
         }
     }
     

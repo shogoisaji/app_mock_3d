@@ -1,7 +1,8 @@
 import Photos
 import UIKit
+import Combine
 
-class PhotoSaveManager {
+class PhotoSaveManager: ObservableObject {
     func saveImageToPhotoLibrary(_ image: UIImage, completion: @escaping (Bool, Error?) -> Void) {
         PHPhotoLibrary.requestAuthorization { status in
             DispatchQueue.main.async {
