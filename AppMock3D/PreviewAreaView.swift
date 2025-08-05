@@ -590,7 +590,7 @@ extension PreviewAreaView {
             .filter { $0.geometry != nil }
             .max(by: { geometryWeight($0.geometry!) < geometryWeight($1.geometry!) })
 
-        guard var node = biggestGeoNode else {
+        guard let node = biggestGeoNode else {
             // フォールバック: 最初のジオメトリ
             return firstGeometryNode(in: root)
         }
@@ -704,18 +704,20 @@ extension PreviewAreaView {
     
     private func updateSceneWithImage(_ image: UIImage?, size: CGSize) {
         guard let image = image else {
-            // 画像がクリアされた場合、元のシーンに戻す
+            // 画像がクリアされた場合、現在のシーンからテクスチャだけをクリア
             appState.clearImageState()
+            
             withAnimation(.easeInOut(duration: 0.3)) {
-                currentScene = originalScene
-                updateSceneBackground(appState.settings, size: size)
+                // 現在のシーンからテクスチャをクリア（Transform状態は維持される）
+                if let clearedScene = TextureManager.shared.clearTextureFromModel(currentScene) {
+                    currentScene = clearedScene
+                    updateSceneBackground(appState.settings, size: size)
+                    print("[PreviewAreaView] Cleared texture while preserving all transforms")
+                }
             }
-            // 初期Transformもリセット（元シーンの初期へ）
-            captureInitialTransforms()
-            // AppState保持値(0/1/0)を再反映
-            applyAppStateTransform()
-            // 親へ最新シーンを通知（初期シーンに戻す）
-            onSceneUpdated?(originalScene)
+            
+            // 親へ最新シーンを通知
+            onSceneUpdated?(currentScene)
             return
         }
         
@@ -881,9 +883,6 @@ extension PreviewAreaView {
         // 操作用ルートを取得（無ければ作成）
         let root = ensureManipulationRoot()
         
-        let oldPos = root.position
-        let oldEuler = root.eulerAngles
-        let oldScale = root.scale
         
         SCNTransaction.begin()
         root.position = appState.objectPosition
