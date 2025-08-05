@@ -7,48 +7,23 @@ class ModelManager {
     private init() {}
     
     func loadModel(named modelName: String) -> SCNScene? {
-        print("Attempting to load model: \(modelName)")
-        
-        // Debug: List all resources in bundle
-        if let resourcePath = Bundle.main.resourcePath {
-            let resourceURL = URL(fileURLWithPath: resourcePath)
-            do {
-                let contents = try FileManager.default.contentsOfDirectory(at: resourceURL, includingPropertiesForKeys: nil)
-                let objFiles = contents.filter { $0.pathExtension == "obj" }
-                print("Available OBJ files in bundle: \(objFiles.map { $0.lastPathComponent })")
-            } catch {
-                print("Error listing bundle contents: \(error)")
+        // Attempt to locate a model file using ModelFileLocator.
+        if let url = ModelFileLocator.locateModel(named: modelName) {
+            if let scene = ModelFileLocator.loadScene(from: url) {
+                return scene
             }
         }
         
-        // First try to load a 3D model file from the bundle
-        if let scene = load3DModel(named: modelName) {
-            return scene
-        }
-        
+        // If no model is found, fall back to a placeholder model.
         print("Using placeholder model for: \(modelName)")
-        // If no OBJ file is found, create a placeholder model
         return createPlaceholderModel()
     }
     
     private func load3DModel(named modelName: String) -> SCNScene? {
-        // 推奨順序で3Dファイル形式を試行 (USDC > USDZ > DAE > SCN > OBJ)
-        let extensions = ["usdc", "usdz", "dae", "scn", "obj"]
-        
-        for ext in extensions {
-            // まずメインバンドルから検索
-            if let url = Bundle.main.url(forResource: modelName, withExtension: ext) {
-                print("Found \(ext.uppercased()) file in bundle: \(modelName).\(ext)")
-                return loadSceneFromURL(url, modelName: modelName)
-            }
-            
-            // Assetsディレクトリからも検索
-            if let url = Bundle.main.url(forResource: "Assets/\(modelName)", withExtension: ext) {
-                print("Found \(ext.uppercased()) file in Assets: \(modelName).\(ext)")
-                return loadSceneFromURL(url, modelName: modelName)
-            }
+        // Use ModelFileLocator to locate and load the model.
+        if let url = ModelFileLocator.locateModel(named: modelName) {
+            return ModelFileLocator.loadScene(from: url)
         }
-        
         print("No supported 3D model found for: \(modelName)")
         return nil
     }
