@@ -16,10 +16,15 @@ struct ContentView: View {
     @StateObject private var photoPermissionManager = PhotoPermissionManager()
     @StateObject private var photoSaveManager = PhotoSaveManager()
     @State private var sceneView: SCNScene?
+    // 追加: エクスポート用に最新シーンを保持
+    @State private var latestSceneForExport: SCNScene?
     @State private var showingImagePicker = false
     @State private var isSaving = false
     @State private var showSaveSuccessAlert = false
     @State private var showSaveErrorAlert = false
+    @State private var showingExportView = false
+    // 追加: プレビューのカメラ行列を保持
+    @State private var latestCameraTransform: SCNMatrix4?
     
     var body: some View {
         ZStack {
@@ -27,7 +32,13 @@ struct ContentView: View {
             Group {
                 if let scene = sceneView {
                     ZStack {
-                        PreviewAreaView(scene: scene, appState: appState, imagePickerManager: imagePickerManager)
+                        PreviewAreaView(scene: scene, appState: appState, imagePickerManager: imagePickerManager, onSceneUpdated: { updated in
+                            // 最新のシーンを保持（エクスポートに使用）
+                            latestSceneForExport = updated
+                        }, onCameraUpdated: { transform in
+                            // カメラ姿勢をリアルタイムで更新
+                            latestCameraTransform = transform
+                        })
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .accessibilityIdentifier("3D Preview")
                         
@@ -97,25 +108,7 @@ struct ContentView: View {
             VStack(spacing: 0) {
                 // 上部 AppBar（Safe Area 内）
                 AppBarView(title: "", onSave: {
-                    isSaving = true
-                    if let scene = sceneView {
-                        let renderingEngine = RenderingEngine(scene: scene)
-                        renderingEngine.renderImage(withQuality: .high, backgroundColor: UIColor(appState.backgroundColor)) { image in
-                            if let image = image {
-                                photoSaveManager.saveImageToPhotoLibrary(image) { success, error in
-                                    isSaving = false
-                                    if success {
-                                        showSaveSuccessAlert = true
-                                    } else {
-                                        showSaveErrorAlert = true
-                                    }
-                                }
-                            } else {
-                                isSaving = false
-                                showSaveErrorAlert = true
-                            }
-                        }
-                    }
+                    showingExportView = true
                 }, onSettings: {
                     appState.toggleSettings()
                 }, onImageSelect: {
@@ -135,39 +128,10 @@ struct ContentView: View {
             loadModel()
         }
         .sheet(isPresented: $showingImagePicker) {
-            NavigationView {
-                ImagePickerView(imagePickerManager: imagePickerManager, permissionManager: photoPermissionManager)
-                    .navigationTitle("画像を選択")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarLeading) {
-                            Button("キャンセル") {
-                                showingImagePicker = false
-                            }
-                        }
-                        
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            Button("完了") {
-                                showingImagePicker = false
-                            }
-                            .disabled(imagePickerManager.selectedImage == nil)
-                        }
-                    }
-            }
+            ImagePickerSheetView(showingImagePicker: $showingImagePicker, imagePickerManager: imagePickerManager, permissionManager: photoPermissionManager)
         }
         .sheet(isPresented: $appState.isSettingsPresented) {
-            NavigationView {
-                SettingsView(appState: appState)
-                    .navigationTitle("設定")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            Button("完了") {
-                                appState.isSettingsPresented = false
-                            }
-                        }
-                    }
-            }
+            SettingsSheetView(appState: appState)
         }
         .alert("保存完了", isPresented: $showSaveSuccessAlert) {
             Button("OK") { }
@@ -179,6 +143,17 @@ struct ContentView: View {
         } message: {
             Text("画像の保存に失敗しました。")
         }
+        .sheet(isPresented: $showingExportView) {
+            // 最新の状態（テクスチャ適用・背景・カメラ反映済み）を優先、なければ初期シーンを使用
+            if let exportScene = latestSceneForExport ?? sceneView {
+                let renderingEngine = RenderingEngine(scene: exportScene)
+                ExportView(renderingEngine: renderingEngine,
+                           photoSaveManager: PhotoSaveManager(),
+                           cameraTransform: latestCameraTransform)
+            } else {
+                Text("エクスポートするシーンがありません。")
+            }
+        }
     }
     
     private func loadModel() {
@@ -189,6 +164,35 @@ struct ContentView: View {
             appState.setImageError("3Dモデルの読み込みに失敗しました。アプリを再起動してください。")
         } else {
             sceneView = model
+            // 初期ロード時点のシーンをエクスポート用にセット
+            latestSceneForExport = model
+        }
+    }
+}
+
+struct ImagePickerSheetView: View {
+    @Binding var showingImagePicker: Bool
+    @ObservedObject var imagePickerManager: ImagePickerManager
+    @ObservedObject var permissionManager: PhotoPermissionManager
+
+    var body: some View {
+        NavigationView {
+            ImagePickerView(imagePickerManager: imagePickerManager, permissionManager: permissionManager)
+                .navigationTitle("画像を選択")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button("キャンセル") {
+                            showingImagePicker = false
+                        }
+                    }
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("完了") {
+                            showingImagePicker = false
+                        }
+                        .disabled(imagePickerManager.selectedImage == nil)
+                    }
+                }
         }
     }
 }
@@ -274,11 +278,25 @@ struct PreviewView: UIViewRepresentable {
     }
 }
 
-#Preview {
-    ContentView()
+struct SettingsSheetView: View {
+    @ObservedObject var appState: AppState
+
+    var body: some View {
+        NavigationView {
+            SettingsView(appState: appState)
+                .navigationTitle("設定")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("完了") {
+                            appState.isSettingsPresented = false
+                        }
+                    }
+                }
+        }
+    }
 }
 
-#Preview {
-    ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
-}
+
+
+

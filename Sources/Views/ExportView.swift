@@ -7,6 +7,9 @@ struct ExportView: View {
     @State private var showAlert: Bool = false
     @State private var alertMessage: String = ""
     
+    var renderingEngine: RenderingEngine
+    var photoSaveManager: PhotoSaveManager
+    
     var body: some View {
         VStack(spacing: 20) {
             Text("エクスポート設定")
@@ -14,7 +17,8 @@ struct ExportView: View {
                 .padding()
             
             Picker("品質設定", selection: $selectedQuality) {
-                ForEach(ExportQuality.allCases, id: \.self) { quality in
+                ForEach(ExportQuality.allCases, id: \.self) {
+                    quality in
                     Text(quality.displayName).tag(quality)
                 }
             }
@@ -38,24 +42,12 @@ struct ExportView: View {
                 ProgressView("エクスポート中...", value: exportProgress, total: 1.0)
                     .progressViewStyle(LinearProgressViewStyle())
                     .padding()
-                
-                Button(action: {
-                    cancelExport()
-                }) {
-                    Text("キャンセル")
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color.red)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
-                }
-                .padding()
             }
             
             Spacer()
         }
         .alert(isPresented: $showAlert) {
-            Alert(title: Text("エクスポート完了"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
+            Alert(title: Text("エクスポート結果"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
         }
     }
     
@@ -63,28 +55,23 @@ struct ExportView: View {
         isExporting = true
         exportProgress = 0.0
         
-        // ここで実際のエクスポート処理を呼び出す
-        // 現在はモック実装
-        DispatchQueue.global(qos: .userInitiated).async {
-            for i in 1...10 {
-                if !self.isExporting { return }
-                DispatchQueue.main.async {
-                    self.exportProgress = Double(i) / 10.0
-                }
-                Thread.sleep(forTimeInterval: 0.5)
+        renderingEngine.renderImage(withQuality: selectedQuality) { image in
+            guard let image = image else {
+                self.isExporting = false
+                self.alertMessage = "画像のエクスポートに失敗しました。"
+                self.showAlert = true
+                return
             }
             
-            DispatchQueue.main.async {
+            photoSaveManager.saveImageToPhotoLibrary(image) { success, error in
                 self.isExporting = false
-                self.alertMessage = "画像が写真ライブラリに保存されました"
+                if success {
+                    self.alertMessage = "画像が写真ライブラリに保存されました。"
+                } else {
+                    self.alertMessage = "画像の保存に失敗しました: \(error?.localizedDescription ?? "不明なエラー")"
+                }
                 self.showAlert = true
             }
         }
-    }
-    
-    private func cancelExport() {
-        isExporting = false
-        alertMessage = "エクスポートがキャンセルされました"
-        showAlert = true
     }
 }

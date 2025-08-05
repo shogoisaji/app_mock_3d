@@ -132,7 +132,9 @@ class TextureManager {
                     screenMaterial.diffuse.magnificationFilter = .linear
                     
                     // UV座標の正確な適用（画像は既に事前反転済み）
-                    screenMaterial.diffuse.contentsTransform = SCNMatrix4Identity
+                    // 水平反転を修正するためにcontentsTransformを調整
+                    let transform = SCNMatrix4MakeScale(-1, 1, 1)
+                    screenMaterial.diffuse.contentsTransform = SCNMatrix4Translate(transform, 1, 0, 0)
                     
                     // 画面の発光効果を追加（リアルな表示のため）
                     // 一時的に発光効果を無効化してテスト
@@ -203,7 +205,9 @@ class TextureManager {
                         screenMaterial.diffuse.magnificationFilter = .linear
                         
                         // UV座標の正確な適用（画像は既に事前反転済み）
-                        screenMaterial.diffuse.contentsTransform = SCNMatrix4Identity
+                        // 水平反転を修正するためにcontentsTransformを調整
+                        let transform = SCNMatrix4MakeScale(-1, 1, 1)
+                        screenMaterial.diffuse.contentsTransform = SCNMatrix4Translate(transform, 1, 0, 0)
                         
                         // 画面の発光効果を追加（リアルな表示のため）
                         // 一時的に発光効果を無効化してテスト
@@ -271,7 +275,9 @@ class TextureManager {
                     screenMaterial.diffuse.magnificationFilter = .linear
                     
                     // UV座標の正確な適用
-                    screenMaterial.diffuse.contentsTransform = SCNMatrix4Identity
+                    // 水平反転を修正するためにcontentsTransformを調整
+                    let transform = SCNMatrix4MakeScale(-1, 1, 1)
+                    screenMaterial.diffuse.contentsTransform = SCNMatrix4Translate(transform, 1, 0, 0)
                     
                     // 画面の発光効果を追加（リアルな表示のため）
                     // 一時的に発光効果を無効化してテスト
@@ -356,7 +362,9 @@ class TextureManager {
                         screenMaterial.diffuse.wrapT = .clamp
                         screenMaterial.diffuse.minificationFilter = .linear
                         screenMaterial.diffuse.magnificationFilter = .linear
-                        screenMaterial.diffuse.contentsTransform = SCNMatrix4Identity
+                        // 水平反転を修正するためにcontentsTransformを調整
+                        let transform = SCNMatrix4MakeScale(-1, 1, 1)
+                        screenMaterial.diffuse.contentsTransform = SCNMatrix4Translate(transform, 1, 0, 0)
                         // 一時的に発光効果を無効化してテスト
                         // screenMaterial.emission.contents = optimizedImage
                         // screenMaterial.emission.intensity = 0.05

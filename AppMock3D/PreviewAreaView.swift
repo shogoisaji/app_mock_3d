@@ -6,12 +6,18 @@ struct PreviewAreaView: View {
     @ObservedObject var appState: AppState
     @ObservedObject var imagePickerManager: ImagePickerManager
     @State private var currentScene: SCNScene
+    // 追加: 現在のシーン更新を親へ伝える
+    var onSceneUpdated: ((SCNScene) -> Void)? = nil
+    // 追加: カメラ姿勢更新を親へ伝える
+    var onCameraUpdated: ((SCNMatrix4) -> Void)? = nil
     
-    init(scene: SCNScene, appState: AppState, imagePickerManager: ImagePickerManager) {
+    init(scene: SCNScene, appState: AppState, imagePickerManager: ImagePickerManager, onSceneUpdated: ((SCNScene) -> Void)? = nil, onCameraUpdated: ((SCNMatrix4) -> Void)? = nil) {
         self.originalScene = scene
         self.appState = appState
         self.imagePickerManager = imagePickerManager
         self._currentScene = State(initialValue: scene)
+        self.onSceneUpdated = onSceneUpdated
+        self.onCameraUpdated = onCameraUpdated
     }
     
     var body: some View {
@@ -21,9 +27,24 @@ struct PreviewAreaView: View {
                 Color.black.opacity(0.5)
                     .edgesIgnoringSafeArea(.all)
                 
-                // Preview area with border
-                PreviewView(scene: currentScene)
-                    .frame(width: geometry.size.width, height: geometry.size.width * appState.aspectRatio)
+                // 1) プレビュー領域のサイズを算出（白枠）
+                let previewWidth = geometry.size.width
+                let previewHeight = geometry.size.width * appState.aspectRatio
+                let previewSize = CGSize(width: previewWidth, height: previewHeight)
+                
+                // 2) SCNView を重ね、見た目のままあとでキャプチャできるようにホスト
+                SnapshotHostingView(scene: currentScene, previewSize: previewSize, onCameraUpdate: { transform in
+                    // Coordinator からカメラ姿勢を受け取り、親へ通知
+                    onCameraUpdated?(transform)
+                })
+                    .frame(width: previewWidth, height: previewHeight)
+                    .background(
+                        GeometryReader { proxy in
+                            Color.clear
+                                .preference(key: PreviewFramePreferenceKey.self,
+                                            value: proxy.frame(in: .global))
+                        }
+                    )
                     .border(Color.white, width: 2)
                     .clipped()
                     .animation(.easeInOut(duration: 0.3), value: currentScene)
@@ -50,6 +71,17 @@ struct PreviewAreaView: View {
             }
             .onAppear {
                 updateSceneBackground(appState.settings, size: geometry.size)
+                // 初回表示時にも現在シーンを通知
+                onSceneUpdated?(currentScene)
+                // カメラ行列も初期通知（存在する場合）
+                if let pov = currentScene.rootNode.childNode(withName: "camera", recursively: true) {
+                    onCameraUpdated?(pov.transform)
+                }
+            }
+            // 白枠の CGRect を外へ伝達（必要に応じて使用）
+            .onPreferenceChange(PreviewFramePreferenceKey.self) { frame in
+                // 今後 ContentView/ExportView 側へ座標を渡したい場合に利用
+                // print("Preview frame (global): \(frame)")
             }
         }
     }
@@ -62,6 +94,8 @@ struct PreviewAreaView: View {
                 currentScene = originalScene
                 updateSceneBackground(appState.settings, size: size)
             }
+            // 親へ最新シーンを通知（初期シーンに戻す）
+            onSceneUpdated?(originalScene)
             return
         }
         
@@ -93,6 +127,8 @@ struct PreviewAreaView: View {
                         currentScene = updatedScene
                         updateSceneBackground(appState.settings, size: size)
                     }
+                    // 親へ最新シーンを通知
+                    onSceneUpdated?(updatedScene)
                     appState.setImageApplied(true)
                     appState.setImageProcessing(false)
                 }
@@ -156,6 +192,132 @@ struct PreviewAreaView: View {
             return 0.0
         }
     }
+    
+    // MARK: - 白枠のフレームを伝えるための PreferenceKey
+    private struct PreviewFramePreferenceKey: PreferenceKey {
+        static var defaultValue: CGRect = .zero
+        static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+            value = nextValue()
+        }
+    }
+}
+
+/// SCNView を SwiftUI 上にホストして、白枠サイズで見えているまま snapshot を取得できるようにするビュー
+private struct SnapshotHostingView: UIViewRepresentable {
+    var scene: SCNScene
+    var previewSize: CGSize
+    // 追加: カメラ姿勢の更新を通知するコールバック
+    var onCameraUpdate: ((SCNMatrix4) -> Void)?
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onCameraUpdate: onCameraUpdate)
+    }
+    
+    func makeUIView(context: Context) -> SCNView {
+        let scnView = SCNView(frame: CGRect(origin: .zero, size: previewSize))
+        scnView.translatesAutoresizingMaskIntoConstraints = false
+        scnView.scene = scene
+        scnView.backgroundColor = .clear
+        // プレビューと同じ操作性
+        scnView.allowsCameraControl = true
+        scnView.showsStatistics = false
+        scnView.antialiasingMode = .multisampling4X
+        scnView.preferredFramesPerSecond = 60
+        scnView.insetsLayoutMarginsFromSafeArea = false
+        scnView.contentMode = .scaleAspectFill
+        scnView.layer.masksToBounds = true
+        
+        // デリゲートを設定してカメラの更新を検知
+        scnView.delegate = context.coordinator
+        
+        // 照明/カメラセットアップ（ContentView.PreviewView と整合）
+        setupLighting(for: scene)
+        setupCamera(for: scene)
+        return scnView
+    }
+    
+    func updateUIView(_ uiView: SCNView, context: Context) {
+        uiView.scene = scene
+        uiView.delegate = context.coordinator
+        uiView.insetsLayoutMarginsFromSafeArea = false
+        uiView.setNeedsLayout()
+        uiView.layoutIfNeeded()
+    }
+    
+    // 現在の見た目を白枠サイズそのままでスナップショット
+    // 注意: UIViewRepresentable の makeUIView を直接呼ばず、表示中の SCNView の snapshot を使う
+    func snapshotImage(from uiView: SCNView) -> UIImage? {
+        // SCNView の snapshot() は現在のカメラ状態・描画内容を反映
+        let raw = uiView.snapshot()
+        // すでに previewSize でフレーム設定しているため、そのまま返せる
+        return raw
+    }
+    
+    private func setupLighting(for scene: SCNScene) {
+        if scene.rootNode.childNode(withName: "mainLight", recursively: false) != nil {
+            return
+        }
+        let lightNode = SCNNode()
+        lightNode.name = "mainLight"
+        lightNode.light = SCNLight()
+        lightNode.light!.type = .directional
+        lightNode.light!.color = UIColor.white
+        lightNode.light!.intensity = 1000
+        lightNode.position = SCNVector3(x: 0, y: 10, z: 10)
+        lightNode.eulerAngles = SCNVector3(x: -Float.pi/4, y: 0, z: 0)
+        scene.rootNode.addChildNode(lightNode)
+        
+        let ambientLightNode = SCNNode()
+        ambientLightNode.name = "ambientLight"
+        ambientLightNode.light = SCNLight()
+        ambientLightNode.light!.type = .ambient
+        ambientLightNode.light!.color = UIColor(white: 0.3, alpha: 1.0)
+        ambientLightNode.light!.intensity = 400
+        scene.rootNode.addChildNode(ambientLightNode)
+        
+        let fillLightNode = SCNNode()
+        fillLightNode.name = "fillLight"
+        fillLightNode.light = SCNLight()
+        fillLightNode.light!.type = .omni
+        fillLightNode.light!.color = UIColor(white: 0.6, alpha: 1.0)
+        fillLightNode.light!.intensity = 200
+        fillLightNode.position = SCNVector3(x: -5, y: 5, z: 5)
+        scene.rootNode.addChildNode(fillLightNode)
+    }
+    
+    private func setupCamera(for scene: SCNScene) {
+        let cameraNode = scene.rootNode.childNode(withName: "camera", recursively: true) ?? {
+            let node = SCNNode()
+            node.name = "camera"
+            node.camera = SCNCamera()
+            scene.rootNode.addChildNode(node)
+            return node
+        }()
+        if let camera = cameraNode.camera {
+            camera.fieldOfView = 60
+            camera.automaticallyAdjustsZRange = true
+            camera.zNear = 0.1
+            camera.zFar = 100
+        }
+        cameraNode.position = SCNVector3(x: 0, y: 0, z: 5)
+        cameraNode.look(at: SCNVector3(x: 0, y: 0, z: 0))
+    }
+
+    // MARK: - Coordinator
+    class Coordinator: NSObject, SCNSceneRendererDelegate {
+        var onCameraUpdate: ((SCNMatrix4) -> Void)?
+
+        init(onCameraUpdate: ((SCNMatrix4) -> Void)?) {
+            self.onCameraUpdate = onCameraUpdate
+        }
+
+        func renderer(_ renderer: SCNSceneRenderer, didRenderScene scene: SCNScene, atTime time: TimeInterval) {
+            // カメラの transform (姿勢) を取得して通知
+            if let pov = renderer.pointOfView {
+                onCameraUpdate?(pov.transform)
+            }
+        }
+    }
 }
 
 struct PreviewAreaView_Previews: PreviewProvider {
@@ -165,6 +327,6 @@ struct PreviewAreaView_Previews: PreviewProvider {
         let boxNode = SCNNode(geometry: box)
         scene.rootNode.addChildNode(boxNode)
         
-        return PreviewAreaView(scene: scene, appState: AppState(), imagePickerManager: ImagePickerManager())
+                return PreviewAreaView(scene: scene, appState: AppState(), imagePickerManager: ImagePickerManager())
     }
 }
