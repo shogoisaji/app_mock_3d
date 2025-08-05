@@ -10,6 +10,11 @@ import SwiftData
 
 @main
 struct AppMock3DApp: App {
+    // 画面を縦向きに固定するための初期化処理を追加
+    init() {
+        OrientationLocker.shared.lockToPortrait()
+    }
+    
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Item.self,
@@ -26,7 +31,7 @@ struct AppMock3DApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .appTheme(.dark)
+                .appTheme(AppTheme.dark)
         }
         .modelContainer(sharedModelContainer)
     }

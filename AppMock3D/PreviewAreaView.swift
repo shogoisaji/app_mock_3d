@@ -41,6 +41,46 @@ struct PreviewAreaView: View {
         self.onSnapshotRequested = onSnapshotRequested
     }
     
+    private func startInitialAnimation() {
+        // currentScene（表示中のシーン）に対してアニメーションを適用
+        guard let manipulationRoot = currentScene.rootNode.childNode(withName: "manipulationRoot", recursively: false) else {
+            // manipulationRootがない場合は、最初のジオメトリを持つノードを探す
+            if let geometryNode = findFirstGeometryNode(in: currentScene.rootNode) {
+                animateNodeAppearance(geometryNode)
+            }
+            return
+        }
+        animateNodeAppearance(manipulationRoot)
+    }
+    
+    private func findFirstGeometryNode(in root: SCNNode) -> SCNNode? {
+        if root.geometry != nil {
+            return root
+        }
+        for child in root.childNodes {
+            if let found = findFirstGeometryNode(in: child) {
+                return found
+            }
+        }
+        return nil
+    }
+    
+    private func animateNodeAppearance(_ node: SCNNode) {
+        // 初期状態を設定（スケール: 0.5, 回転: -90度）
+        node.scale = SCNVector3(0.5, 0.5, 0.5)
+        node.eulerAngles = SCNVector3(0, -Float.pi/2, 0) // -90度回転
+        
+        // 1秒でアニメーション（スケール: 1.0, 回転: 0度）
+        SCNTransaction.begin()
+        SCNTransaction.animationDuration = 1.0
+        SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeOut)
+        
+        node.scale = SCNVector3(1.0, 1.0, 1.0)
+        node.eulerAngles = SCNVector3(0, 0, 0)
+        
+        SCNTransaction.commit()
+    }
+    
     var body: some View {
         GeometryReader { geometry in
             MainContentView(
@@ -68,6 +108,12 @@ struct PreviewAreaView: View {
             currentScene: currentScene,
             captureInitialTransforms: captureInitialTransforms
         )
+        .onAppear {
+            // ビューが表示されたタイミングでアニメーションを開始
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                startInitialAnimation()
+            }
+        }
     }
 }
 
@@ -109,9 +155,8 @@ private struct ContentLayout: View {
     private var previewSize: CGSize { CGSize(width: previewWidth, height: previewHeight) }
     
     var body: some View {
-        ZStack {
-            BackgroundOverlay()
-            
+        VStack {
+            Spacer()
             SceneView(
                 currentScene: currentScene,
                 appState: appState,
@@ -122,22 +167,12 @@ private struct ContentLayout: View {
                 previewWidth: previewWidth,
                 previewHeight: previewHeight
             )
-            
-            if imagePickerManager.selectedImage == nil && !appState.isImageProcessing {
-                EmptyStateView()
-            }
+            Spacer()
         }
     }
 }
 
 // MARK: - Component Views
-private struct BackgroundOverlay: View {
-    var body: some View {
-        Color.black.opacity(0.5)
-            .edgesIgnoringSafeArea(.all)
-    }
-}
-
 private struct SceneView: View {
     let currentScene: SCNScene
     let appState: AppState
@@ -156,7 +191,8 @@ private struct SceneView: View {
             onCameraUpdate: { transform in
                 onCameraUpdated?(transform)
             },
-            onSnapshotRequested: onSnapshotRequested
+            onSnapshotRequested: onSnapshotRequested,
+            appState: appState
         )
         .frame(width: previewWidth, height: previewHeight)
         .background(PreferenceBackground())
@@ -185,20 +221,6 @@ private struct PreferenceBackground: View {
     }
 }
 
-private struct EmptyStateView: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "photo.badge.plus")
-                .font(.system(size: 50))
-                .foregroundColor(.white.opacity(0.7))
-            Text("上の📷ボタンから画像を選択")
-                .foregroundColor(.white.opacity(0.7))
-                .font(.headline)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.black.opacity(0.3))
-    }
-}
 
 // MARK: - ViewModifier Extension
 extension View {
@@ -440,9 +462,41 @@ extension PreviewAreaView {
     
     // MARK: - 変換のリセット（AppStateの保持値を0/1/0へ）
     private func resetSceneTransform() {
-        // 状態を0/1/0へ戻し、反映は onChange ハンドラで行う
-        appState.resetObjectTransformState()
+        // AppStateの値をアニメーション付きでリセット
+        withAnimation(.easeInOut(duration: 0.8)) {
+            appState.resetObjectTransformState()
+        }
     }
+    
+    
+    
+    
+    
+    
+    
+    // 追加: 可能性のある全てのノードをリセット
+    private func resetAllPossibleNodes() {
+        var allNodes: [SCNNode] = []
+        collectAllNodes(from: currentScene.rootNode, into: &allNodes)
+        
+        for node in allNodes {
+            let name = node.name?.lowercased() ?? ""
+            // カメラやライト以外で、ジオメトリを持つか特定の名前を持つノードをリセット
+            if !name.contains("camera") && !name.contains("light") {
+                if node.geometry != nil || name.contains("model") || name.contains("iphone") {
+                    print("[DEBUG] Resetting node: \(node.name ?? "unnamed") - pos=\(node.position), euler=\(node.eulerAngles), scale=\(node.scale)")
+                    SCNTransaction.begin()
+                    SCNTransaction.animationDuration = 0.3
+                    node.position = SCNVector3(0, 0, 0)
+                    node.eulerAngles = SCNVector3(0, 0, 0)  
+                    node.scale = SCNVector3(1, 1, 1)
+                    SCNTransaction.commit()
+                }
+            }
+        }
+    }
+    
+    
 
     /// ツリーを深さ優先で探索し、ジオメトリを持つ最初のノードを返す
     private func firstGeometryNode(in root: SCNNode) -> SCNNode? {
@@ -596,17 +650,21 @@ extension PreviewAreaView {
         if container == nil {
             container = currentScene.rootNode.childNode(withName: "manipulationRoot", recursively: false)
             if container == nil {
-                let rootChilds = currentScene.rootNode.childNodes
-                // ジオメトリ総量の多いノード群を新規ルートにまとめて移動（破壊的変更は避け、必要最低限の再親化）
                 let newRoot = SCNNode()
                 newRoot.name = "manipulationRoot"
                 currentScene.rootNode.addChildNode(newRoot)
-                for child in rootChilds {
-                    // 既知のライト/カメラは除外
-                    let lname = (child.name ?? "").lowercased()
-                    if lname.contains("light") || lname.contains("camera") { continue }
+
+                let childrenToMove = currentScene.rootNode.childNodes.filter {
+                    let lname = ($0.name ?? "").lowercased()
+                    return lname != "manipulationroot" && !lname.contains("light") && !lname.contains("camera")
+                }
+                
+                for child in childrenToMove {
+                    // ワールド座標を維持して再親化
+                    let worldTransform = child.worldTransform
                     child.removeFromParentNode()
                     newRoot.addChildNode(child)
+                    child.transform = newRoot.convertTransform(worldTransform, from: nil)
                 }
                 container = newRoot
             }
@@ -683,20 +741,18 @@ extension PreviewAreaView {
             }
             
             // テクスチャ適用を実行
-            if let updatedScene = TextureManager.shared.applyTextureToModel(originalScene, image: image) {
+            if let updatedScene = TextureManager.shared.applyTextureToModel(self.currentScene, image: image) {
                 DispatchQueue.main.async {
+                    // 現在のTransformが維持されたシーンをそのまま設定
                     withAnimation(.easeInOut(duration: 0.3)) {
-                        currentScene = updatedScene
-                        updateSceneBackground(appState.settings, size: size)
+                        self.currentScene = updatedScene
+                        self.updateSceneBackground(self.appState.settings, size: size)
                     }
-                    // 新しいシーンに対して初期Transformを取り直す
-                    captureInitialTransforms()
-                    // AppState保持値を反映（ユーザー操作状態を維持）
-                    applyAppStateTransform()
+                    
                     // 親へ最新シーンを通知
-                    onSceneUpdated?(updatedScene)
-                    appState.setImageApplied(true)
-                    appState.setImageProcessing(false)
+                    self.onSceneUpdated?(updatedScene)
+                    self.appState.setImageApplied(true)
+                    self.appState.setImageProcessing(false)
                 }
             } else {
                 DispatchQueue.main.async {
@@ -824,13 +880,17 @@ extension PreviewAreaView {
     private func applyAppStateTransform() {
         // 操作用ルートを取得（無ければ作成）
         let root = ensureManipulationRoot()
+        
+        let oldPos = root.position
+        let oldEuler = root.eulerAngles
+        let oldScale = root.scale
+        
         SCNTransaction.begin()
-        SCNTransaction.animationDuration = 0
         root.position = appState.objectPosition
         root.eulerAngles = appState.objectEulerAngles
         root.scale = appState.objectScale
         SCNTransaction.commit()
-        SCNTransaction.flush()
+        
     }
 
     // manipulationRoot を返す（無ければライト/カメラ以外をぶら下げて作成）
@@ -845,13 +905,17 @@ extension PreviewAreaView {
         currentScene.rootNode.addChildNode(newRoot)
 
         // 現在の直下の子を走査して、ライト/カメラ以外を移動
-        let children = currentScene.rootNode.childNodes
+        let children = currentScene.rootNode.childNodes.filter {
+            let lname = ($0.name ?? "").lowercased()
+            return lname != "manipulationroot" && !lname.contains("light") && !lname.contains("camera")
+        }
+        
         for child in children {
-            let lname = (child.name ?? "").lowercased()
-            if lname == "manipulationroot" { continue }
-            if lname.contains("light") || lname.contains("camera") { continue }
+            // ワールド座標を維持して再親化
+            let worldTransform = child.worldTransform
             child.removeFromParentNode()
             newRoot.addChildNode(child)
+            child.transform = newRoot.convertTransform(worldTransform, from: nil)
         }
         return newRoot
     }
@@ -866,6 +930,8 @@ private struct SnapshotHostingView: UIViewRepresentable {
     var onCameraUpdate: ((SCNMatrix4) -> Void)?
     // 追加: スナップショット要求を受け取るコールバック
     var onSnapshotRequested: ((UIImage?) -> Void)?
+    // AppStateを渡すためのプロパティ
+    var appState: AppState
 
     func makeCoordinator() -> Coordinator {
         Coordinator(onCameraUpdate: onCameraUpdate, onSnapshotRequested: onSnapshotRequested)
@@ -875,9 +941,14 @@ private struct SnapshotHostingView: UIViewRepresentable {
         let scnView = SCNView(frame: CGRect(origin: .zero, size: previewSize))
         scnView.translatesAutoresizingMaskIntoConstraints = false
         scnView.scene = scene
-        scnView.backgroundColor = .clear
-        // プレビューと同じ操作性
-        scnView.allowsCameraControl = true
+        // 背景色はシーンで管理するため、SCNViewの背景は透明にしない
+        scnView.backgroundColor = .black
+        // オブジェクト操作に変更（カメラ操作ではなく）
+        scnView.allowsCameraControl = false
+        
+        // CoordinatorにAppStateを設定してジェスチャーをセットアップ
+        context.coordinator.appState = appState
+        context.coordinator.setupObjectManipulationGestures(for: scnView)
         scnView.showsStatistics = false
         scnView.antialiasingMode = .multisampling4X
         scnView.preferredFramesPerSecond = 60
@@ -894,6 +965,10 @@ private struct SnapshotHostingView: UIViewRepresentable {
         // 照明/カメラセットアップ（ContentView.PreviewView と整合）
         setupLighting(for: scene)
         setupCamera(for: scene)
+        
+        // 初期背景設定を適用
+        updateSceneBackground(scene: scene, settings: appState.settings, size: previewSize)
+        
         return scnView
     }
     
@@ -904,8 +979,12 @@ private struct SnapshotHostingView: UIViewRepresentable {
         uiView.setNeedsLayout()
         uiView.layoutIfNeeded()
         
-        // Coordinatorの SCNView 参照を更新
+        // Coordinatorの SCNView 参照とAppStateを更新
         context.coordinator.scnView = uiView
+        context.coordinator.appState = appState
+        
+        // 背景設定を更新
+        updateSceneBackground(scene: scene, settings: appState.settings, size: previewSize)
         
         // スナップショット要求が来ている場合
         if shouldTakeSnapshot {
@@ -979,17 +1058,120 @@ private struct SnapshotHostingView: UIViewRepresentable {
         cameraNode.position = SCNVector3(x: 0, y: 0, z: 5)
         cameraNode.look(at: SCNVector3(x: 0, y: 0, z: 0))
     }
+    
+    private func updateSceneBackground(scene: SCNScene, settings: AppSettings, size: CGSize) {
+        switch settings.backgroundColor {
+        case .solidColor:
+            scene.background.contents = UIColor(Color(hex: settings.solidColorValue) ?? .white)
+        case .gradient:
+            let gradientLayer = CAGradientLayer()
+            gradientLayer.frame = CGRect(origin: .zero, size: size)
+            gradientLayer.colors = [
+                UIColor(Color(hex: settings.gradientStartColor) ?? .white).cgColor,
+                UIColor(Color(hex: settings.gradientEndColor) ?? .black).cgColor
+            ]
+            if settings.gradientType == .linear {
+                gradientLayer.startPoint = CGPoint(x: 0.5, y: 0)
+                gradientLayer.endPoint = CGPoint(x: 0.5, y: 1)
+            } else {
+                gradientLayer.type = .radial
+                gradientLayer.startPoint = CGPoint(x: 0.5, y: 0.5)
+                gradientLayer.endPoint = CGPoint(x: 1, y: 1)
+            }
+            
+            UIGraphicsBeginImageContext(gradientLayer.bounds.size)
+            gradientLayer.render(in: UIGraphicsGetCurrentContext()!)
+            let image = UIGraphicsGetImageFromCurrentImageContext()
+            UIGraphicsEndImageContext()
+            
+            scene.background.contents = image
+        case .transparent:
+            scene.background.contents = UIColor.clear
+        }
+    }
 
     // MARK: - Coordinator
     class Coordinator: NSObject, SCNSceneRendererDelegate {
         var onCameraUpdate: ((SCNMatrix4) -> Void)?
         var onSnapshotRequested: ((UIImage?) -> Void)?
         var scnView: SCNView?
+        var appState: AppState?
 
         init(onCameraUpdate: ((SCNMatrix4) -> Void)?, onSnapshotRequested: ((UIImage?) -> Void)?) {
             self.onCameraUpdate = onCameraUpdate
             self.onSnapshotRequested = onSnapshotRequested
             super.init()
+        }
+        
+        // オブジェクト操作ジェスチャーをセットアップ
+        func setupObjectManipulationGestures(for scnView: SCNView) {
+            // パンジェスチャー
+            let panGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePanGesture(_:)))
+            panGesture.maximumNumberOfTouches = 2
+            scnView.addGestureRecognizer(panGesture)
+            
+            // ピンチジェスチャー
+            let pinchGesture = UIPinchGestureRecognizer(target: self, action: #selector(handlePinchGesture(_:)))
+            scnView.addGestureRecognizer(pinchGesture)
+        }
+        
+        @objc func handlePanGesture(_ gesture: UIPanGestureRecognizer) {
+            guard let appState = appState else { return }
+            
+            let translation = gesture.translation(in: gesture.view)
+            
+            if gesture.state == .changed {
+                switch gesture.numberOfTouches {
+                case 1: // 1本指：回転
+                    let rotationX = Float(translation.y) * 0.01
+                    let rotationY = Float(translation.x) * 0.01
+                    
+                    let oldEuler = appState.objectEulerAngles
+                    let newEuler = SCNVector3(oldEuler.x + rotationX, oldEuler.y + rotationY, oldEuler.z)
+                    
+                    appState.setObjectEuler(newEuler)
+                    
+                case 2: // 2本指：位置移動
+                    let moveX = Float(translation.x) * 0.005
+                    let moveY = Float(translation.y) * -0.005
+                    
+                    let oldPos = appState.objectPosition
+                    let newPos = SCNVector3(oldPos.x + moveX, oldPos.y + moveY, oldPos.z)
+                    
+                    appState.setObjectPosition(newPos)
+                    
+                default:
+                    break
+                }
+            }
+            
+            gesture.setTranslation(.zero, in: gesture.view)
+        }
+        
+        @objc func handlePinchGesture(_ gesture: UIPinchGestureRecognizer) {
+            guard let appState = appState else { return }
+            
+            let scale = Float(gesture.scale)
+            
+            if gesture.state == .changed {
+                let oldScale = appState.objectScale
+                let newScaleX = oldScale.x * scale
+                let newScaleY = oldScale.y * scale
+                let newScaleZ = oldScale.z * scale
+                
+                // スケール制限
+                let minScale: Float = 0.5
+                let maxScale: Float = 3.0
+                let clampedScale = SCNVector3(
+                    max(minScale, min(maxScale, newScaleX)),
+                    max(minScale, min(maxScale, newScaleY)), 
+                    max(minScale, min(maxScale, newScaleZ))
+                )
+                
+                appState.setObjectScale(clampedScale)
+            }
+            
+            gesture.scale = 1.0
         }
 
         func renderer(_ renderer: SCNSceneRenderer, didRenderScene scene: SCNScene, atTime time: TimeInterval) {

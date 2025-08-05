@@ -57,9 +57,15 @@ class AppState: ObservableObject {
     @Published var objectScale: SCNVector3 = SCNVector3(1, 1, 1)
 
     // 値の更新ヘルパ
-    func setObjectPosition(_ p: SCNVector3) { objectPosition = p }
-    func setObjectEuler(_ r: SCNVector3) { objectEulerAngles = r }
-    func setObjectScale(_ s: SCNVector3) { objectScale = s }
+    func setObjectPosition(_ p: SCNVector3) { 
+        objectPosition = p 
+    }
+    func setObjectEuler(_ r: SCNVector3) { 
+        objectEulerAngles = r 
+    }
+    func setObjectScale(_ s: SCNVector3) { 
+        objectScale = s 
+    }
 
     // リセット（0/1/0へ）
     func resetObjectTransformState() {

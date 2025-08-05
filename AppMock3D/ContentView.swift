@@ -19,6 +19,7 @@ struct ContentView: View {
     // 追加: エクスポート用に最新シーンを保持
     @State private var latestSceneForExport: SCNScene?
     @State private var showingImagePicker = false
+    @State private var showingPermissionAlert = false
     @State private var isSaving = false
     @State private var showSaveSuccessAlert = false
     @State private var showSaveErrorAlert = false
@@ -131,7 +132,7 @@ struct ContentView: View {
                 }, onSettings: {
                     appState.toggleSettings()
                 }, onImageSelect: {
-                    showingImagePicker = true
+                    handleImageButtonPressed()
                 })
                 .accessibilityIdentifier("AppBar")
                 .padding(.top, 0)
@@ -167,8 +168,14 @@ struct ContentView: View {
         .onAppear {
             loadModel()
         }
-        .sheet(isPresented: $showingImagePicker) {
-            ImagePickerSheetView(showingImagePicker: $showingImagePicker, imagePickerManager: imagePickerManager, permissionManager: photoPermissionManager)
+        .photosPicker(
+            isPresented: $showingImagePicker,
+            selection: $imagePickerManager.selectedItem,
+            matching: .images,
+            photoLibrary: .shared()
+        )
+        .onChange(of: imagePickerManager.selectedItem) { _, _ in
+            imagePickerManager.loadImage()
         }
         .sheet(isPresented: $appState.isSettingsPresented) {
             SettingsSheetView(appState: appState)
@@ -182,6 +189,14 @@ struct ContentView: View {
             Button("OK") { }
         } message: {
             Text("画像の保存に失敗しました。")
+        }
+        .alert("写真へのアクセス許可", isPresented: $showingPermissionAlert) {
+            Button("設定を開く") {
+                openAppSettings()
+            }
+            Button("キャンセル", role: .cancel) { }
+        } message: {
+            Text("画像を選択するには、写真ライブラリへのアクセスを許可してください。設定アプリで「AppMock3D」のアクセス権限を変更できます。")
         }
         .sheet(isPresented: $showingExportView) {
             // スナップショット画像がある場合はそれを使用
@@ -217,34 +232,45 @@ struct ContentView: View {
             latestSceneForExport = model
         }
     }
-}
-
-struct ImagePickerSheetView: View {
-    @Binding var showingImagePicker: Bool
-    @ObservedObject var imagePickerManager: ImagePickerManager
-    @ObservedObject var permissionManager: PhotoPermissionManager
-
-    var body: some View {
-        NavigationView {
-            ImagePickerView(imagePickerManager: imagePickerManager, permissionManager: permissionManager)
-                .navigationTitle("画像を選択")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        Button("キャンセル") {
-                            showingImagePicker = false
-                        }
-                    }
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("完了") {
-                            showingImagePicker = false
-                        }
-                        .disabled(imagePickerManager.selectedImage == nil)
+    
+    private func handleImageButtonPressed() {
+        // 権限をチェック
+        photoPermissionManager.checkAuthorizationStatus()
+        
+        switch photoPermissionManager.authorizationStatus {
+        case .authorized:
+            // 権限がある場合は直接PhotosPickerを表示
+            showingImagePicker = true
+        case .notDetermined:
+            // 初回の場合は権限を要求
+            Task {
+                let status = await photoPermissionManager.requestPermission()
+                DispatchQueue.main.async {
+                    if status == .authorized {
+                        self.showingImagePicker = true
+                    } else {
+                        self.showingPermissionAlert = true
                     }
                 }
+            }
+        case .denied, .restricted:
+            // 拒否されている場合はアラートを表示
+            showingPermissionAlert = true
+        case .limited:
+            // 制限付きアクセスでも画像選択は可能
+            showingImagePicker = true
+        @unknown default:
+            showingPermissionAlert = true
+        }
+    }
+    
+    private func openAppSettings() {
+        if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(settingsUrl)
         }
     }
 }
+
 
 struct PreviewView: UIViewRepresentable {
     var scene: SCNScene
@@ -253,7 +279,7 @@ struct PreviewView: UIViewRepresentable {
         let scnView = SCNView(frame: .zero)
         scnView.translatesAutoresizingMaskIntoConstraints = false
         scnView.scene = scene
-        scnView.allowsCameraControl = true
+        scnView.allowsCameraControl = false // オブジェクト操作に変更
         scnView.showsStatistics = false
         scnView.backgroundColor = UIColor.black
         scnView.antialiasingMode = .multisampling4X

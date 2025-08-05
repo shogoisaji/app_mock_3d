@@ -62,6 +62,9 @@ struct GestureHandlingView: UIViewRepresentable {
                 let newEulerY = node.eulerAngles.y + rotationY
                 
                 node.eulerAngles = SCNVector3(newEulerX, newEulerY, node.eulerAngles.z)
+                
+                // AppStateの値を同期
+                parent.appState.setObjectEuler(node.eulerAngles)
 
             case 2: // 2-finger pan for movement
                 let moveX = Float(translation.x) * 0.01
@@ -69,6 +72,9 @@ struct GestureHandlingView: UIViewRepresentable {
                 
                 node.position.x += moveX
                 node.position.y += moveY
+                
+                // AppStateの値を同期
+                parent.appState.setObjectPosition(node.position)
 
             default:
                 break
@@ -88,6 +94,9 @@ struct GestureHandlingView: UIViewRepresentable {
             let newScaleZ = node.scale.z * scale
             
             node.scale = SCNVector3(newScaleX, newScaleY, newScaleZ)
+            
+            // AppStateの値を同期
+            parent.appState.setObjectScale(node.scale)
             
             // Reset gesture scale to 1 for incremental scaling
             gesture.scale = 1.0

@@ -453,41 +453,10 @@ class TextureManager {
     }
     
     private func deepCopyScene(from sourceScene: SCNScene, to targetScene: SCNScene) {
-        // ノード構造を再帰的にコピー
-        deepCopyNode(sourceScene.rootNode, to: targetScene.rootNode)
-    }
-    
-    private func deepCopyNode(_ sourceNode: SCNNode, to targetNode: SCNNode) {
-        // 子ノードを再帰的にコピー
-        for childNode in sourceNode.childNodes {
-            let copiedChild = SCNNode()
-            
-            // 基本プロパティをコピー
-            copiedChild.name = childNode.name
-            copiedChild.position = childNode.position
-            copiedChild.rotation = childNode.rotation
-            copiedChild.scale = childNode.scale
-            copiedChild.transform = childNode.transform
-            
-            // ジオメトリをコピー（参照ではなく新しいインスタンス）
-            if let geometry = childNode.geometry {
-                copiedChild.geometry = geometry.copy() as? SCNGeometry
-            }
-            
-            // ライト、カメラなどもコピー
-            if let light = childNode.light {
-                copiedChild.light = light.copy() as? SCNLight
-            }
-            
-            if let camera = childNode.camera {
-                copiedChild.camera = camera.copy() as? SCNCamera
-            }
-            
-            // 子ノードを親に追加
-            targetNode.addChildNode(copiedChild)
-            
-            // 再帰的に子ノードをコピー
-            deepCopyNode(childNode, to: copiedChild)
+        // sourceScene のルートノードを完全にクローンして、新しいシーンのルートノードとして設定する
+        // これにより、transform、geometry、materialなど、すべての情報が正確にコピーされる
+        for node in sourceScene.rootNode.childNodes {
+            targetScene.rootNode.addChildNode(node.clone())
         }
     }
     
