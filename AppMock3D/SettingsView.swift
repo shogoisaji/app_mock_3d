@@ -142,7 +142,7 @@ struct SettingsView: View {
             Spacer()
         }
         .padding()
-        .background(Color(.secondarySystemBackground))
+        .background(Color(hex: "#303135") ?? Color(red: 48/255, green: 49/255, blue: 53/255))
         .cornerRadius(10)
         .shadow(radius: 5)
         
@@ -155,6 +155,7 @@ struct SettingsView: View {
         .onChange(of: appState.settings) { _, newSettings in
             newSettings.save()
         }
+        .tint(Color(hex: "#E99370") ?? .orange)
     }
     
     private func getAspectRatioText() -> String {

@@ -10,16 +10,35 @@ struct ExportView: View {
     // 追加: プレビュー画像と読み込み状態
     @State private var previewImage: UIImage?
     @State private var isLoadingPreview: Bool = true
+    // 追加: プレビュー生成の再試行回数を追跡
+    @State private var previewRetryCount: Int = 0
+    // 追加: 現在のカメラトランスフォームをローカルで保持
+    @State private var currentCameraTransform: SCNMatrix4?
+    // 追加: カメラトランスフォームの変更を検出するためのハッシュ値
+    @State private var cameraTransformHash: Int = 0
 
     // 追加: 呼び出し元から受け取る依存
     var renderingEngine: RenderingEngine?
     var photoSaveManager: PhotoSaveManager
-    // 追加: プレビューの最新カメラ姿勢（任意）
-    var cameraTransform: SCNMatrix4? = nil
+    // 追加: プレビューの最新カメラ姿勢（Bindingで受け取る）
+    @Binding var cameraTransform: SCNMatrix4?
     // 追加: プレビューのアスペクト比
     var aspectRatio: Double = 1.0
     // 追加: プレビューのスナップショット画像
     var previewSnapshot: UIImage? = nil
+    
+    // 初期化メソッドを追加してBindingを適切に扱う
+    init(renderingEngine: RenderingEngine?, 
+         photoSaveManager: PhotoSaveManager, 
+         cameraTransform: Binding<SCNMatrix4?>, 
+         aspectRatio: Double = 1.0, 
+         previewSnapshot: UIImage? = nil) {
+        self.renderingEngine = renderingEngine
+        self.photoSaveManager = photoSaveManager
+        self._cameraTransform = cameraTransform
+        self.aspectRatio = aspectRatio
+        self.previewSnapshot = previewSnapshot
+    }
     
     var body: some View {
         VStack(spacing: 20) {
@@ -74,7 +93,20 @@ struct ExportView: View {
             
             Spacer()
         }
-        .onAppear(perform: generatePreview)
+        .onAppear {
+            currentCameraTransform = cameraTransform
+            cameraTransformHash = hashMatrix(cameraTransform)
+            generatePreview()
+        }
+        .onChange(of: hashMatrix(cameraTransform)) { _, newHash in
+            // カメラトランスフォームが変更された場合、プレビューを再生成
+            if newHash != cameraTransformHash {
+                cameraTransformHash = newHash
+                currentCameraTransform = cameraTransform
+                previewRetryCount = 0 // 再試行カウンターをリセット
+                generatePreview()
+            }
+        }
         .alert(isPresented: $showAlert) {
             Alert(title: Text("エクスポート結果"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
         }
@@ -89,19 +121,48 @@ struct ExportView: View {
             previewImage = snapshot
             isLoadingPreview = false
         } else if let engine = renderingEngine {
-            // RenderingEngineでプレビューを生成（フォールバック）
-            engine.renderImage(
-                withQuality: .low, 
-                aspectRatio: aspectRatio, 
-                cameraTransform: cameraTransform
-            ) { image in
-                self.previewImage = image
-                self.isLoadingPreview = false
+            // カメラトランスフォームが無効またはデフォルト値の場合、再試行
+            if shouldRetryPreviewGeneration() && previewRetryCount < 3 {
+                previewRetryCount += 1
+                let delay = Double(previewRetryCount) * 0.1 // 0.1秒, 0.2秒, 0.3秒と徐々に遅延
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                    self.generatePreview() // 再帰的に再試行
+                }
+            } else {
+                generatePreviewWithEngine(engine)
             }
         } else {
             // どちらも利用できない場合
             previewImage = nil
             isLoadingPreview = false
+        }
+    }
+    
+    // カメラトランスフォームが無効またはデフォルト値かチェック
+    private func shouldRetryPreviewGeneration() -> Bool {
+        let transform = currentCameraTransform ?? cameraTransform
+        guard let transform = transform else {
+            return true // transformがnilの場合は再試行
+        }
+        
+        // デフォルト値（単位行列やz=5の初期位置）をチェック
+        let isIdentityMatrix = SCNMatrix4EqualToMatrix4(transform, SCNMatrix4Identity)
+        let isDefaultPosition = (transform.m41 == 0 && transform.m42 == 0 && transform.m43 == 5)
+        
+        return isIdentityMatrix || isDefaultPosition
+    }
+    
+    // RenderingEngineでプレビューを生成
+    private func generatePreviewWithEngine(_ engine: RenderingEngine) {
+        // 最新のカメラトランスフォームを使用
+        let transformToUse = currentCameraTransform ?? cameraTransform
+        engine.renderImage(
+            withQuality: .low, 
+            aspectRatio: aspectRatio, 
+            cameraTransform: transformToUse
+        ) { image in
+            self.previewImage = image
+            self.isLoadingPreview = false
         }
     }
     
@@ -114,10 +175,11 @@ struct ExportView: View {
             saveImageToPhotoLibrary(snapshot)
         } else if let engine = renderingEngine {
             // RenderingEngine を使って画像を生成（フォールバック）
+            let transformToUse = currentCameraTransform ?? cameraTransform
             engine.renderImage(
                 withQuality: selectedQuality, 
                 aspectRatio: aspectRatio, 
-                cameraTransform: cameraTransform
+                cameraTransform: transformToUse
             ) { image in
                 guard let image = image else {
                     self.isExporting = false
@@ -171,5 +233,30 @@ struct ExportView: View {
         isExporting = false
         alertMessage = "エクスポートがキャンセルされました"
         showAlert = true
+    }
+    
+    // SCNMatrix4のハッシュ値を計算するヘルパー関数
+    private func hashMatrix(_ matrix: SCNMatrix4?) -> Int {
+        guard let matrix = matrix else { return 0 }
+        
+        var hasher = Hasher()
+        hasher.combine(matrix.m11)
+        hasher.combine(matrix.m12)
+        hasher.combine(matrix.m13)
+        hasher.combine(matrix.m14)
+        hasher.combine(matrix.m21)
+        hasher.combine(matrix.m22)
+        hasher.combine(matrix.m23)
+        hasher.combine(matrix.m24)
+        hasher.combine(matrix.m31)
+        hasher.combine(matrix.m32)
+        hasher.combine(matrix.m33)
+        hasher.combine(matrix.m34)
+        hasher.combine(matrix.m41)
+        hasher.combine(matrix.m42)
+        hasher.combine(matrix.m43)
+        hasher.combine(matrix.m44)
+        
+        return hasher.finalize()
     }
 }

@@ -32,6 +32,13 @@ struct ContentView: View {
     
     var body: some View {
         ZStack {
+            // 背景（ダークテーマ）
+            Color(.clear)
+                .background(
+                    // 簡易的に UIViewRepresentable の背後も暗色になるようベースカラーを敷く
+                    Color(hex: "#303135") ?? Color(red: 48/255, green: 49/255, blue: 53/255)
+                )
+                .ignoresSafeArea()
             // 3D プレビューは Safe Area を無視して全画面
             Group {
                 if let scene = sceneView {
@@ -45,8 +52,10 @@ struct ContentView: View {
                         }, onSnapshotRequested: { snapshot in
                             // スナップショット画像を受け取る
                             currentPreviewSnapshot = snapshot
-                            // スナップショット取得後にExportViewを表示
-                            showingExportView = true
+                            // カメラトランスフォームが確実に最新になるまで少し待ってからExportViewを表示
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                                showingExportView = true
+                            }
                         })
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .accessibilityIdentifier("3D Preview")
@@ -56,9 +65,9 @@ struct ContentView: View {
                             VStack {
                                 ProgressView()
                                     .scaleEffect(1.5)
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .progressViewStyle(CircularProgressViewStyle(tint: Color(hex: "#E99370") ?? .orange))
                                 Text("画像を処理中...")
-                                    .foregroundColor(.white)
+                                    .foregroundColor(Color(hex: "#E99370") ?? .orange)
                                     .padding(.top)
                             }
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -70,21 +79,21 @@ struct ContentView: View {
                             VStack {
                                 Image(systemName: "exclamationmark.triangle")
                                     .font(.system(size: 50))
-                                    .foregroundColor(.red)
+                                    .foregroundColor(Color(hex: "#E99370") ?? .orange)
                                 Text("エラー")
                                     .font(.headline)
-                                    .foregroundColor(.red)
+                                    .foregroundColor(Color(hex: "#E99370") ?? .orange)
                                 Text(error)
                                     .font(.subheadline)
-                                    .foregroundColor(.red)
+                                    .foregroundColor(Color(hex: "#E99370") ?? .orange)
                                     .multilineTextAlignment(.center)
                                     .padding()
                                 Button("再試行") {
                                     appState.clearImageState()
                                 }
-                                .foregroundColor(.white)
+                                .foregroundColor(.black)
                                 .padding()
-                                .background(Color.red)
+                                .background(Color(hex: "#E99370") ?? .orange)
                                 .cornerRadius(8)
                             }
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -96,9 +105,9 @@ struct ContentView: View {
                             VStack {
                                 ProgressView()
                                     .scaleEffect(1.5)
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .progressViewStyle(CircularProgressViewStyle(tint: Color(hex: "#E99370") ?? .orange))
                                 Text("画像を保存中...")
-                                    .foregroundColor(.white)
+                                    .foregroundColor(Color(hex: "#E99370") ?? .orange)
                                     .padding(.top)
                             }
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -129,11 +138,32 @@ struct ContentView: View {
                 
                 Spacer()
                 
-                
+                // 下部 BottomAppBar（左下配置）
+                HStack {
+                    BottomAppBarView(
+                        onGridToggle: {
+                            appState.toggleGrid()
+                        },
+                        onLightingAdjust: {
+                            // 位置を循環
+                            appState.cycleLightingPosition()
+                        },
+                        onResetTransform: {
+                            appState.triggerResetTransform()
+                        },
+                        lightingNumber: appState.lightingPositionNumber
+                    )
+                    .accessibilityIdentifier("BottomAppBar")
+                    
+                    Spacer()
+                }
+                .padding(.horizontal, 12)
+                .padding(.bottom, 12)
             }
             .padding(.horizontal, 0)
             // Safe Area を尊重（ここでは ignoresSafeArea を適用しない）
         }
+        .tint(Color(hex: "#E99370") ?? .orange) // アクセントカラー
         .onAppear {
             loadModel()
         }
@@ -158,7 +188,7 @@ struct ContentView: View {
             if let snapshot = currentPreviewSnapshot {
                 ExportView(renderingEngine: nil,
                            photoSaveManager: PhotoSaveManager(),
-                           cameraTransform: latestCameraTransform,
+                           cameraTransform: $latestCameraTransform,
                            aspectRatio: appState.aspectRatio,
                            previewSnapshot: snapshot)
             } else if let exportScene = latestSceneForExport ?? sceneView {
@@ -166,7 +196,7 @@ struct ContentView: View {
                 let renderingEngine = RenderingEngine(scene: exportScene)
                 ExportView(renderingEngine: renderingEngine,
                            photoSaveManager: PhotoSaveManager(),
-                           cameraTransform: latestCameraTransform,
+                           cameraTransform: $latestCameraTransform,
                            aspectRatio: appState.aspectRatio,
                            previewSnapshot: nil)
             } else {
@@ -255,7 +285,7 @@ struct PreviewView: UIViewRepresentable {
         lightNode.light = SCNLight()
         lightNode.light!.type = .directional
         lightNode.light!.color = UIColor.white
-        lightNode.light!.intensity = 1000
+        lightNode.light!.intensity = 600
         lightNode.position = SCNVector3(x: 0, y: 10, z: 10)
         lightNode.eulerAngles = SCNVector3(x: -Float.pi/4, y: 0, z: 0)
         scene.rootNode.addChildNode(lightNode)
@@ -265,7 +295,7 @@ struct PreviewView: UIViewRepresentable {
         ambientLightNode.light = SCNLight()
         ambientLightNode.light!.type = .ambient
         ambientLightNode.light!.color = UIColor(white: 0.3, alpha: 1.0)
-        ambientLightNode.light!.intensity = 400
+        ambientLightNode.light!.intensity = 240
         scene.rootNode.addChildNode(ambientLightNode)
         
         let fillLightNode = SCNNode()
@@ -273,7 +303,11 @@ struct PreviewView: UIViewRepresentable {
         fillLightNode.light = SCNLight()
         fillLightNode.light!.type = .omni
         fillLightNode.light!.color = UIColor(white: 0.6, alpha: 1.0)
-        fillLightNode.light!.intensity = 200
+        fillLightNode.light!.intensity = 100
+        // 拡散感（光源を大きく感じるように減衰を緩やかに）
+        fillLightNode.light!.attenuationStartDistance = 8.0
+        fillLightNode.light!.attenuationEndDistance = 22.0
+        fillLightNode.light!.attenuationFalloffExponent = 1.0
         fillLightNode.position = SCNVector3(x: -5, y: 5, z: 5)
         scene.rootNode.addChildNode(fillLightNode)
     }

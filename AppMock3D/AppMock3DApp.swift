@@ -26,6 +26,7 @@ struct AppMock3DApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .appTheme(.dark)
         }
         .modelContainer(sharedModelContainer)
     }

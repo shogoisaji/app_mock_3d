@@ -32,3 +32,32 @@ extension Color {
         return String(format: "#%02X%02X%02X", Int(red * 255), Int(green * 255), Int(blue * 255))
     }
 }
+// アプリのテーマ定義
+struct AppTheme {
+    let background: Color
+    let primary: Color
+    let secondary: Color
+    
+    static let dark = AppTheme(
+        background: Color(hex: "#303135") ?? Color(red: 48/255, green: 49/255, blue: 53/255),
+        primary: Color(hex: "#E99370") ?? Color(red: 233/255, green: 147/255, blue: 112/255),
+        secondary: Color(hex: "#86B9D9") ?? Color(red: 233/255, green: 147/255, blue: 112/255)
+    )
+}
+
+private struct AppThemeKey: EnvironmentKey {
+    static let defaultValue: AppTheme = .dark
+}
+
+extension EnvironmentValues {
+    var appTheme: AppTheme {
+        get { self[AppThemeKey.self] }
+        set { self[AppThemeKey.self] = newValue }
+    }
+}
+
+extension View {
+    func appTheme(_ theme: AppTheme) -> some View {
+        environment(\.appTheme, theme)
+    }
+}
