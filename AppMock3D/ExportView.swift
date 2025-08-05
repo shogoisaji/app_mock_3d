@@ -12,10 +12,14 @@ struct ExportView: View {
     @State private var isLoadingPreview: Bool = true
 
     // 追加: 呼び出し元から受け取る依存
-    var renderingEngine: RenderingEngine
+    var renderingEngine: RenderingEngine?
     var photoSaveManager: PhotoSaveManager
     // 追加: プレビューの最新カメラ姿勢（任意）
     var cameraTransform: SCNMatrix4? = nil
+    // 追加: プレビューのアスペクト比
+    var aspectRatio: Double = 1.0
+    // 追加: プレビューのスナップショット画像
+    var previewSnapshot: UIImage? = nil
     
     var body: some View {
         VStack(spacing: 20) {
@@ -80,16 +84,24 @@ struct ExportView: View {
     private func generatePreview() {
         isLoadingPreview = true
         
-        // カメラ姿勢を反映
-        if let cam = cameraTransform,
-           let pov = renderingEngineValuePointOfView() {
-            pov.transform = cam
-        }
-        
-        // 低品質で高速にプレビューを生成
-        renderingEngine.renderImage(withQuality: .low) { image in
-            self.previewImage = image
-            self.isLoadingPreview = false
+        // スナップショット画像がある場合はそれを使用
+        if let snapshot = previewSnapshot {
+            previewImage = snapshot
+            isLoadingPreview = false
+        } else if let engine = renderingEngine {
+            // RenderingEngineでプレビューを生成（フォールバック）
+            engine.renderImage(
+                withQuality: .low, 
+                aspectRatio: aspectRatio, 
+                cameraTransform: cameraTransform
+            ) { image in
+                self.previewImage = image
+                self.isLoadingPreview = false
+            }
+        } else {
+            // どちらも利用できない場合
+            previewImage = nil
+            isLoadingPreview = false
         }
     }
     
@@ -97,35 +109,48 @@ struct ExportView: View {
         isExporting = true
         exportProgress = 0.0
         
-        // カメラ姿勢が渡されていれば、レンダリング前に反映する
-        if let cam = cameraTransform,
-           let pov = renderingEngineValuePointOfView() {
-            pov.transform = cam
-        }
-        
-        // RenderingEngine を使って画像を生成し、PhotoSaveManager で保存
-        renderingEngine.renderImage(withQuality: selectedQuality) { image in
-            guard let image = image else {
-                self.isExporting = false
-                self.alertMessage = "画像のエクスポートに失敗しました。"
-                self.showAlert = true
-                return
-            }
-            
-            self.photoSaveManager.saveImageToPhotoLibrary(image) { success, error in
-                self.isExporting = false
-                if success {
-                    self.alertMessage = "画像が写真ライブラリに保存されました。"
-                } else {
-                    self.alertMessage = "画像の保存に失敗しました: \(error?.localizedDescription ?? "不明なエラー")"
+        // スナップショット画像がある場合はそれを保存
+        if let snapshot = previewSnapshot {
+            saveImageToPhotoLibrary(snapshot)
+        } else if let engine = renderingEngine {
+            // RenderingEngine を使って画像を生成（フォールバック）
+            engine.renderImage(
+                withQuality: selectedQuality, 
+                aspectRatio: aspectRatio, 
+                cameraTransform: cameraTransform
+            ) { image in
+                guard let image = image else {
+                    self.isExporting = false
+                    self.alertMessage = "画像のエクスポートに失敗しました。"
+                    self.showAlert = true
+                    return
                 }
-                self.showAlert = true
+                self.saveImageToPhotoLibrary(image)
             }
+        } else {
+            // どちらも利用できない場合
+            isExporting = false
+            alertMessage = "エクスポートに必要な画像データが見つかりません。"
+            showAlert = true
+        }
+    }
+    
+    private func saveImageToPhotoLibrary(_ image: UIImage) {
+        photoSaveManager.saveImageToPhotoLibrary(image) { success, error in
+            self.isExporting = false
+            if success {
+                self.alertMessage = "画像が写真ライブラリに保存されました。"
+            } else {
+                self.alertMessage = "画像の保存に失敗しました: \(error?.localizedDescription ?? "不明なエラー")"
+            }
+            self.showAlert = true
         }
     }
     
     // RenderingEngine の scene 内カメラノードを取得して姿勢を適用するためのヘルパ
     private func renderingEngineValuePointOfView() -> SCNNode? {
+        guard let engine = renderingEngine else { return nil }
+        
         // RenderingEngine は内部に scene を持ち、scene.rootNode に "camera" がある前提
         // 直接アクセス手段がないため、エクスポート前に渡した scene 内の camera を参照する
         // ここでは renderer.pointOfView を上書きするため camera ノードを取得
@@ -133,7 +158,7 @@ struct ExportView: View {
         // ここで camera ノードの transform を先に更新しておけば一致する。
         // scene は RenderingEngine 初期化時に渡されたものの参照が生きている。
         // その rootNode から名前検索する。
-        let mirror = Mirror(reflecting: renderingEngine)
+        let mirror = Mirror(reflecting: engine)
         for child in mirror.children {
             if child.label == "scene", let scene = child.value as? SCNScene {
                 return scene.rootNode.childNode(withName: "camera", recursively: true)

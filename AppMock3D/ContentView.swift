@@ -25,6 +25,10 @@ struct ContentView: View {
     @State private var showingExportView = false
     // 追加: プレビューのカメラ行列を保持
     @State private var latestCameraTransform: SCNMatrix4?
+    // 追加: プレビューのスナップショット画像を保持
+    @State private var currentPreviewSnapshot: UIImage?
+    // 追加: スナップショット要求のトリガー
+    @State private var shouldTakeSnapshot = false
     
     var body: some View {
         ZStack {
@@ -32,12 +36,17 @@ struct ContentView: View {
             Group {
                 if let scene = sceneView {
                     ZStack {
-                        PreviewAreaView(scene: scene, appState: appState, imagePickerManager: imagePickerManager, onSceneUpdated: { updated in
+                        PreviewAreaView(scene: scene, appState: appState, imagePickerManager: imagePickerManager, shouldTakeSnapshot: $shouldTakeSnapshot, onSceneUpdated: { updated in
                             // 最新のシーンを保持（エクスポートに使用）
                             latestSceneForExport = updated
                         }, onCameraUpdated: { transform in
                             // カメラ姿勢をリアルタイムで更新
                             latestCameraTransform = transform
+                        }, onSnapshotRequested: { snapshot in
+                            // スナップショット画像を受け取る
+                            currentPreviewSnapshot = snapshot
+                            // スナップショット取得後にExportViewを表示
+                            showingExportView = true
                         })
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .accessibilityIdentifier("3D Preview")
@@ -108,7 +117,8 @@ struct ContentView: View {
             VStack(spacing: 0) {
                 // 上部 AppBar（Safe Area 内）
                 AppBarView(title: "", onSave: {
-                    showingExportView = true
+                    // スナップショット要求をトリガー
+                    shouldTakeSnapshot = true
                 }, onSettings: {
                     appState.toggleSettings()
                 }, onImageSelect: {
@@ -144,12 +154,21 @@ struct ContentView: View {
             Text("画像の保存に失敗しました。")
         }
         .sheet(isPresented: $showingExportView) {
-            // 最新の状態（テクスチャ適用・背景・カメラ反映済み）を優先、なければ初期シーンを使用
-            if let exportScene = latestSceneForExport ?? sceneView {
+            // スナップショット画像がある場合はそれを使用
+            if let snapshot = currentPreviewSnapshot {
+                ExportView(renderingEngine: nil,
+                           photoSaveManager: PhotoSaveManager(),
+                           cameraTransform: latestCameraTransform,
+                           aspectRatio: appState.aspectRatio,
+                           previewSnapshot: snapshot)
+            } else if let exportScene = latestSceneForExport ?? sceneView {
+                // フォールバック: RenderingEngineを使用
                 let renderingEngine = RenderingEngine(scene: exportScene)
                 ExportView(renderingEngine: renderingEngine,
                            photoSaveManager: PhotoSaveManager(),
-                           cameraTransform: latestCameraTransform)
+                           cameraTransform: latestCameraTransform,
+                           aspectRatio: appState.aspectRatio,
+                           previewSnapshot: nil)
             } else {
                 Text("エクスポートするシーンがありません。")
             }

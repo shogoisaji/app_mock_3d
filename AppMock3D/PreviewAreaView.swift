@@ -10,14 +10,20 @@ struct PreviewAreaView: View {
     var onSceneUpdated: ((SCNScene) -> Void)? = nil
     // 追加: カメラ姿勢更新を親へ伝える
     var onCameraUpdated: ((SCNMatrix4) -> Void)? = nil
+    // 追加: スナップショット要求を受け取るコールバック
+    var onSnapshotRequested: ((UIImage?) -> Void)? = nil
+    // 追加: スナップショット要求のトリガー
+    @Binding var shouldTakeSnapshot: Bool
     
-    init(scene: SCNScene, appState: AppState, imagePickerManager: ImagePickerManager, onSceneUpdated: ((SCNScene) -> Void)? = nil, onCameraUpdated: ((SCNMatrix4) -> Void)? = nil) {
+    init(scene: SCNScene, appState: AppState, imagePickerManager: ImagePickerManager, shouldTakeSnapshot: Binding<Bool>, onSceneUpdated: ((SCNScene) -> Void)? = nil, onCameraUpdated: ((SCNMatrix4) -> Void)? = nil, onSnapshotRequested: ((UIImage?) -> Void)? = nil) {
         self.originalScene = scene
         self.appState = appState
         self.imagePickerManager = imagePickerManager
         self._currentScene = State(initialValue: scene)
+        self._shouldTakeSnapshot = shouldTakeSnapshot
         self.onSceneUpdated = onSceneUpdated
         self.onCameraUpdated = onCameraUpdated
+        self.onSnapshotRequested = onSnapshotRequested
     }
     
     var body: some View {
@@ -33,10 +39,10 @@ struct PreviewAreaView: View {
                 let previewSize = CGSize(width: previewWidth, height: previewHeight)
                 
                 // 2) SCNView を重ね、見た目のままあとでキャプチャできるようにホスト
-                SnapshotHostingView(scene: currentScene, previewSize: previewSize, onCameraUpdate: { transform in
+                SnapshotHostingView(scene: currentScene, previewSize: previewSize, shouldTakeSnapshot: $shouldTakeSnapshot, onCameraUpdate: { transform in
                     // Coordinator からカメラ姿勢を受け取り、親へ通知
                     onCameraUpdated?(transform)
-                })
+                }, onSnapshotRequested: onSnapshotRequested)
                     .frame(width: previewWidth, height: previewHeight)
                     .background(
                         GeometryReader { proxy in
@@ -82,6 +88,13 @@ struct PreviewAreaView: View {
             .onPreferenceChange(PreviewFramePreferenceKey.self) { frame in
                 // 今後 ContentView/ExportView 側へ座標を渡したい場合に利用
                 // print("Preview frame (global): \(frame)")
+            }
+            .onChange(of: shouldTakeSnapshot) { _, newValue in
+                if newValue {
+                    // スナップショット要求が来たときの処理
+                    // SnapshotHostingViewが自動的にスナップショットを取得する
+                    // フラグのリセットはSnapshotHostingView内で行われる
+                }
             }
         }
     }
@@ -206,11 +219,14 @@ struct PreviewAreaView: View {
 private struct SnapshotHostingView: UIViewRepresentable {
     var scene: SCNScene
     var previewSize: CGSize
+    @Binding var shouldTakeSnapshot: Bool
     // 追加: カメラ姿勢の更新を通知するコールバック
     var onCameraUpdate: ((SCNMatrix4) -> Void)?
+    // 追加: スナップショット要求を受け取るコールバック
+    var onSnapshotRequested: ((UIImage?) -> Void)?
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onCameraUpdate: onCameraUpdate)
+        Coordinator(onCameraUpdate: onCameraUpdate, onSnapshotRequested: onSnapshotRequested)
     }
     
     func makeUIView(context: Context) -> SCNView {
@@ -230,6 +246,9 @@ private struct SnapshotHostingView: UIViewRepresentable {
         // デリゲートを設定してカメラの更新を検知
         scnView.delegate = context.coordinator
         
+        // Coordinatorに SCNView の参照を渡す
+        context.coordinator.scnView = scnView
+        
         // 照明/カメラセットアップ（ContentView.PreviewView と整合）
         setupLighting(for: scene)
         setupCamera(for: scene)
@@ -242,6 +261,18 @@ private struct SnapshotHostingView: UIViewRepresentable {
         uiView.insetsLayoutMarginsFromSafeArea = false
         uiView.setNeedsLayout()
         uiView.layoutIfNeeded()
+        
+        // Coordinatorの SCNView 参照を更新
+        context.coordinator.scnView = uiView
+        
+        // スナップショット要求が来ている場合
+        if shouldTakeSnapshot {
+            context.coordinator.takeSnapshot()
+            // フラグをリセット
+            DispatchQueue.main.async {
+                shouldTakeSnapshot = false
+            }
+        }
     }
     
     // 現在の見た目を白枠サイズそのままでスナップショット
@@ -306,9 +337,13 @@ private struct SnapshotHostingView: UIViewRepresentable {
     // MARK: - Coordinator
     class Coordinator: NSObject, SCNSceneRendererDelegate {
         var onCameraUpdate: ((SCNMatrix4) -> Void)?
+        var onSnapshotRequested: ((UIImage?) -> Void)?
+        var scnView: SCNView?
 
-        init(onCameraUpdate: ((SCNMatrix4) -> Void)?) {
+        init(onCameraUpdate: ((SCNMatrix4) -> Void)?, onSnapshotRequested: ((UIImage?) -> Void)?) {
             self.onCameraUpdate = onCameraUpdate
+            self.onSnapshotRequested = onSnapshotRequested
+            super.init()
         }
 
         func renderer(_ renderer: SCNSceneRenderer, didRenderScene scene: SCNScene, atTime time: TimeInterval) {
@@ -317,16 +352,36 @@ private struct SnapshotHostingView: UIViewRepresentable {
                 onCameraUpdate?(pov.transform)
             }
         }
+        
+        func takeSnapshot() {
+            guard let scnView = scnView else {
+                onSnapshotRequested?(nil)
+                return
+            }
+            
+            DispatchQueue.main.async {
+                let snapshot = scnView.snapshot()
+                self.onSnapshotRequested?(snapshot)
+            }
+        }
     }
 }
 
 struct PreviewAreaView_Previews: PreviewProvider {
     static var previews: some View {
+        PreviewAreaViewWrapper()
+    }
+}
+
+private struct PreviewAreaViewWrapper: View {
+    @State private var shouldTakeSnapshot = false
+    
+    var body: some View {
         let scene = SCNScene()
         let box = SCNBox(width: 0.1, height: 0.2, length: 0.05, chamferRadius: 0.01)
         let boxNode = SCNNode(geometry: box)
         scene.rootNode.addChildNode(boxNode)
         
-                return PreviewAreaView(scene: scene, appState: AppState(), imagePickerManager: ImagePickerManager())
+        return PreviewAreaView(scene: scene, appState: AppState(), imagePickerManager: ImagePickerManager(), shouldTakeSnapshot: $shouldTakeSnapshot)
     }
 }
