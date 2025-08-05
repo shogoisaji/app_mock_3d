@@ -31,12 +31,6 @@ class TextureManager {
     }
     
     func applyTextureToModel(_ model: SCNScene, image: UIImage) -> SCNScene? {
-        // 画像のハッシュをキーとしてキャッシュを確認
-        let imageHash = "\(image.hashValue)"
-        if let cachedScene = sceneCache.object(forKey: imageHash as NSString) {
-            return cachedScene
-        }
-        
         // 画像を最適化（必要に応じてリサイズ）
         let optimizedImage = optimizeImageForTexture(image)
         
@@ -47,24 +41,21 @@ class TextureManager {
         print("Image scale: \(optimizedImage.scale)")
         print("========================")
         
-        // 安全なシーンコピー方法を使用
-        let newScene = SCNScene()
+        // 既存のシーンを直接修正する（新しいシーンを作らない）
+        let workingScene = model
         
-        // 元のシーンのすべての要素を新しいシーンにコピー
-        deepCopyScene(from: model, to: newScene)
-        
-        print("Created new scene with deep copy")
+        print("Using existing scene (no deep copy)")
         
         // デバッグ: ノード構造を出力
         print("=== TextureManager: Scene Node Structure ===")
-        debugSceneStructure(newScene.rootNode, level: 0)
+        debugSceneStructure(workingScene.rootNode, level: 0)
         print("=== End Scene Node Structure ===")
         
         // iPhoneモデルの画面部分のみにテクスチャを適用
         var screenFound = false
         var screenNodeCandidates: [(SCNNode, String)] = []
         
-        newScene.rootNode.enumerateChildNodes { (node, stop) in
+        workingScene.rootNode.enumerateChildNodes { (node, stop) in
             // ノード名とジオメトリの存在をチェック
             let nodeName = node.name?.lowercased() ?? ""
             let hasGeometry = node.geometry != nil
@@ -303,7 +294,7 @@ class TextureManager {
             print("Available nodes with geometry:")
             var geometryNodes: [(SCNNode, String)] = []
             
-            newScene.rootNode.enumerateChildNodes { (node, _) in
+            workingScene.rootNode.enumerateChildNodes { (node, _) in
                 if let geometry = node.geometry {
                     let nodeName = node.name ?? "unnamed"
                     geometryNodes.append((node, nodeName))
@@ -386,10 +377,48 @@ class TextureManager {
             return nil
         }
         
-        // キャッシュに保存
-        sceneCache.setObject(newScene, forKey: imageHash as NSString)
+        print("Successfully applied texture to existing scene")
+        return workingScene
+    }
+    
+    // 画像テクスチャをクリアして元の状態に戻す
+    func clearTextureFromModel(_ model: SCNScene) -> SCNScene? {
+        print("Clearing texture from existing scene")
         
-        return newScene
+        // iPhoneモデルの画面部分を見つけて元の黒い画面に戻す
+        var screenFound = false
+        
+        model.rootNode.enumerateChildNodes { (node, stop) in
+            let nodeName = node.name?.lowercased() ?? ""
+            let hasGeometry = node.geometry != nil
+            
+            if hasGeometry, let geometry = node.geometry {
+                // 画面ノード候補を探す
+                let possibleScreenNames = ["screen", "Screen", "display", "Display", "LCD", "OLED", "Screen_Border", "Ellipse_2_Material"]
+                let isScreenNode = possibleScreenNames.contains { screenName in
+                    nodeName.contains(screenName.lowercased())
+                }
+                
+                if isScreenNode || (!screenFound && hasGeometry) {
+                    print("Clearing texture from node: '\(node.name ?? "unnamed")'")
+                    
+                    // 画面マテリアルを元の黒い画面に戻す
+                    for (index, _) in geometry.materials.enumerated() {
+                        let screenMaterial = SCNMaterial()
+                        screenMaterial.diffuse.contents = UIColor.black
+                        screenMaterial.specular.contents = UIColor.white
+                        screenMaterial.shininess = 1.0
+                        
+                        geometry.materials[index] = screenMaterial
+                    }
+                    screenFound = true
+                    stop.pointee = true
+                }
+            }
+        }
+        
+        print("Successfully cleared texture from existing scene")
+        return model
     }
     
     private func optimizeImageForTexture(_ image: UIImage) -> UIImage {
@@ -452,13 +481,6 @@ class TextureManager {
         return (textureCache.totalCostLimit, sceneCache.totalCostLimit)
     }
     
-    private func deepCopyScene(from sourceScene: SCNScene, to targetScene: SCNScene) {
-        // sourceScene のルートノードを完全にクローンして、新しいシーンのルートノードとして設定する
-        // これにより、transform、geometry、materialなど、すべての情報が正確にコピーされる
-        for node in sourceScene.rootNode.childNodes {
-            targetScene.rootNode.addChildNode(node.clone())
-        }
-    }
     
     private func debugSceneStructure(_ node: SCNNode, level: Int) {
         let indent = String(repeating: "  ", count: level)
