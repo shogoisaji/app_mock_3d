@@ -181,7 +181,7 @@ struct SettingsView: View {
         case .sixteenToNine:
             return 16.0 / 9.0
         case .fourToThree:
-            return 4.0 / 3.0
+            return 4.01 / 3.0
         case .oneToOne:
             return 1.0
         case .threeToFour:
