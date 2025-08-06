@@ -106,8 +106,26 @@ struct ContentView: View {
                            aspectRatio: appState.aspectRatio,
                            previewSnapshot: nil)
             } else {
-                Text("エクスポートするシーンがありません。")
+                // 最後の手段: 新しいシーンを作成してエクスポート
+                let fallbackScene = ModelManager.shared.loadModel(named: "iphone14pro") ?? SCNScene()
+                let renderingEngine = RenderingEngine(scene: fallbackScene)
+                ExportView(renderingEngine: renderingEngine,
+                           photoSaveManager: PhotoSaveManager(),
+                           cameraTransform: $latestCameraTransform,
+                           aspectRatio: appState.aspectRatio,
+                           previewSnapshot: nil)
             }
+        }
+        .alert("権限が必要です", isPresented: $showingPermissionAlert) {
+            Button("設定を開く") {
+                // 設定アプリを開く
+                if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(settingsURL)
+                }
+            }
+            Button("キャンセル", role: .cancel) { }
+        } message: {
+            Text("画像を選択するには、写真ライブラリへのアクセスを許可してください。設定アプリで「AppMock3D」のアクセス権限を変更できます。")
         }
     }
     

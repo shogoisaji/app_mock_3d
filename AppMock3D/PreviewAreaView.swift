@@ -1,5 +1,6 @@
 import SwiftUI
 import SceneKit
+import UIKit
 
 // MARK: - PreferenceKey
 struct PreviewFramePreferenceKey: PreferenceKey {
@@ -169,6 +170,7 @@ private struct ContentLayout: View {
             )
             Spacer()
         }
+        .padding(.horizontal, 12)
     }
 }
 
@@ -186,7 +188,7 @@ private struct SceneView: View {
     var body: some View {
         SnapshotHostingView(
             scene: currentScene,
-            previewSize: previewSize,
+            previewSize: CGSize(width: previewWidth - 24, height: previewHeight),
             shouldTakeSnapshot: $shouldTakeSnapshot,
             onCameraUpdate: { transform in
                 onCameraUpdated?(transform)
@@ -194,11 +196,15 @@ private struct SceneView: View {
             onSnapshotRequested: onSnapshotRequested,
             appState: appState
         )
-        .frame(width: previewWidth, height: previewHeight)
+        .frame(width: previewWidth - 24, height: previewHeight)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .background(PreferenceBackground())
-        .border(Color.white, width: 2)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color.white.opacity(0.9), lineWidth: 1.5)
+        )
         .clipped()
-        .animation(.easeInOut(duration: 0.3), value: currentScene)
+        .animation(.easeInOut(duration: 0.3), value: currentScene.rootNode.childNodes.count)
         .overlay(alignment: .center) {
             if appState.isGridVisible {
                 PreviewAreaView.GridOverlayView()
@@ -375,81 +381,81 @@ extension PreviewAreaView {
         switch pos {
         case .one:
             // 右上前方からのやわらかい斜光
-            mainNode.position = SCNVector3(x: 4.0, y: 6.0, z: 6.0)
+            mainNode.position = SCNVector3(x: Float(4.0), y: Float(6.0), z: Float(6.0))
             mainNode.eulerAngles = SCNVector3(x: -Float.pi/4, y: -Float.pi/6, z: 0)
-            fillNode?.position = SCNVector3(x: -3.0, y: 2.5, z: 4.5)
+            fillNode?.position = SCNVector3(x: Float(-3.0), y: Float(2.5), z: Float(4.5))
             fillNode?.eulerAngles = SCNVector3(x: -Float.pi/8, y: Float.pi/9, z: 0)
             setFillAttenuation(start: 10, end: 26, falloff: 1.0)
             mainIntensity = 420; fillIntensity = 90
         case .two:
             // 左上やや後方のトップ
-            mainNode.position = SCNVector3(x: -6.5, y: 7.0, z: 1.5)
+            mainNode.position = SCNVector3(x: Float(-6.5), y: Float(7.0), z: Float(1.5))
             mainNode.eulerAngles = SCNVector3(x: -Float.pi/3.8, y: Float.pi/7, z: 0)
-            fillNode?.position = SCNVector3(x: 3.0, y: 2.0, z: 5.2)
+            fillNode?.position = SCNVector3(x: Float(3.0), y: Float(2.0), z: Float(5.2))
             fillNode?.eulerAngles = SCNVector3(x: -Float.pi/12, y: -Float.pi/14, z: 0)
             setFillAttenuation(start: 11, end: 28, falloff: 1.0)
             mainIntensity = 430; fillIntensity = 95
         case .three:
             // 下手前からの持ち上げ
-            mainNode.position = SCNVector3(x: 0.0, y: -2.2, z: 6.8)
+            mainNode.position = SCNVector3(x: Float(0.0), y: Float(-2.2), z: Float(6.8))
             mainNode.eulerAngles = SCNVector3(x: Float.pi/9, y: 0, z: 0)
-            fillNode?.position = SCNVector3(x: 2.0, y: 4.2, z: 4.2)
+            fillNode?.position = SCNVector3(x: Float(2.0), y: Float(4.2), z: Float(4.2))
             fillNode?.eulerAngles = SCNVector3(x: -Float.pi/6, y: -Float.pi/12, z: 0)
             setFillAttenuation(start: 9, end: 24, falloff: 1.0)
             mainIntensity = 410; fillIntensity = 100
         case .four:
             // 上後方のバックライト
-            mainNode.position = SCNVector3(x: 0.0, y: 7.5, z: -4.5)
+            mainNode.position = SCNVector3(x: Float(0.0), y: Float(7.5), z: Float(-4.5))
             mainNode.eulerAngles = SCNVector3(x: -Float.pi/2.6, y: 0, z: 0)
-            fillNode?.position = SCNVector3(x: 0.0, y: 2.0, z: 6.2)
+            fillNode?.position = SCNVector3(x: Float(0.0), y: Float(2.0), z: Float(6.2))
             fillNode?.eulerAngles = SCNVector3(x: -Float.pi/10, y: 0, z: 0)
             setFillAttenuation(start: 12, end: 30, falloff: 1.0)
             mainIntensity = 400; fillIntensity = 85
         case .five:
             // 右側面からのサイドライト
-            mainNode.position = SCNVector3(x: 7.0, y: 1.5, z: 3.5)
+            mainNode.position = SCNVector3(x: Float(7.0), y: Float(1.5), z: Float(3.5))
             mainNode.eulerAngles = SCNVector3(x: -Float.pi/10, y: -Float.pi/3.2, z: 0)
-            fillNode?.position = SCNVector3(x: -2.5, y: 3.5, z: 5.0)
+            fillNode?.position = SCNVector3(x: Float(-2.5), y: Float(3.5), z: Float(5.0))
             fillNode?.eulerAngles = SCNVector3(x: -Float.pi/10, y: Float.pi/10, z: 0)
             setFillAttenuation(start: 10, end: 26, falloff: 1.1)
             mainIntensity = 430; fillIntensity = 95
         case .six:
             // 左側面サイド＋ややトップ
-            mainNode.position = SCNVector3(x: -7.0, y: 2.5, z: 3.0)
+            mainNode.position = SCNVector3(x: Float(-7.0), y: Float(2.5), z: Float(3.0))
             mainNode.eulerAngles = SCNVector3(x: -Float.pi/8, y: Float.pi/3.4, z: 0)
-            fillNode?.position = SCNVector3(x: 2.2, y: 3.2, z: 5.4)
+            fillNode?.position = SCNVector3(x: Float(2.2), y: Float(3.2), z: Float(5.4))
             fillNode?.eulerAngles = SCNVector3(x: -Float.pi/11, y: -Float.pi/10, z: 0)
             setFillAttenuation(start: 11, end: 27, falloff: 1.1)
             mainIntensity = 420; fillIntensity = 100
         case .seven:
             // 下後方からのローポジション
-            mainNode.position = SCNVector3(x: 0.0, y: -3.5, z: -2.0)
+            mainNode.position = SCNVector3(x: Float(0.0), y: Float(-3.5), z: Float(-2.0))
             mainNode.eulerAngles = SCNVector3(x: Float.pi/2.8, y: 0, z: 0)
-            fillNode?.position = SCNVector3(x: 1.0, y: 3.8, z: 5.0)
+            fillNode?.position = SCNVector3(x: Float(1.0), y: Float(3.8), z: Float(5.0))
             fillNode?.eulerAngles = SCNVector3(x: -Float.pi/8, y: -Float.pi/14, z: 0)
             setFillAttenuation(start: 12, end: 32, falloff: 1.0)
             mainIntensity = 380; fillIntensity = 90
         case .eight:
             // 右上前方のハイキー寄り
-            mainNode.position = SCNVector3(x: 5.5, y: 7.0, z: 6.5)
+            mainNode.position = SCNVector3(x: Float(5.5), y: Float(7.0), z: Float(6.5))
             mainNode.eulerAngles = SCNVector3(x: -Float.pi/3.8, y: -Float.pi/7, z: 0)
-            fillNode?.position = SCNVector3(x: -2.0, y: 1.8, z: 4.8)
+            fillNode?.position = SCNVector3(x: Float(-2.0), y: Float(1.8), z: Float(4.8))
             fillNode?.eulerAngles = SCNVector3(x: -Float.pi/12, y: Float.pi/9, z: 0)
             setFillAttenuation(start: 13, end: 34, falloff: 1.0)
             mainIntensity = 450; fillIntensity = 100
         case .nine:
             // 左上前方のローキー寄り
-            mainNode.position = SCNVector3(x: -5.5, y: 6.0, z: 5.5)
+            mainNode.position = SCNVector3(x: Float(-5.5), y: Float(6.0), z: Float(5.5))
             mainNode.eulerAngles = SCNVector3(x: -Float.pi/4.5, y: Float.pi/8, z: 0)
-            fillNode?.position = SCNVector3(x: 2.5, y: 2.0, z: 5.5)
+            fillNode?.position = SCNVector3(x: Float(2.5), y: Float(2.0), z: Float(5.5))
             fillNode?.eulerAngles = SCNVector3(x: -Float.pi/10, y: -Float.pi/11, z: 0)
             setFillAttenuation(start: 10, end: 28, falloff: 1.2)
             mainIntensity = 410; fillIntensity = 95
         case .ten:
             // 上方正面やや遠方からのディフューズ
-            mainNode.position = SCNVector3(x: 0.0, y: 9.0, z: 8.5)
+            mainNode.position = SCNVector3(x: Float(0.0), y: Float(9.0), z: Float(8.5))
             mainNode.eulerAngles = SCNVector3(x: -Float.pi/3.2, y: 0, z: 0)
-            fillNode?.position = SCNVector3(x: 0.0, y: 2.2, z: 6.8)
+            fillNode?.position = SCNVector3(x: Float(0.0), y: Float(2.2), z: Float(6.8))
             fillNode?.eulerAngles = SCNVector3(x: -Float.pi/9, y: 0, z: 0)
             setFillAttenuation(start: 14, end: 36, falloff: 1.0)
             mainIntensity = 440; fillIntensity = 105
@@ -609,7 +615,7 @@ extension PreviewAreaView {
             // SCNVector3 の比較は各成分で判定（浮動小数のため閾値付き）
             func isNonUnit(_ v: SCNVector3) -> Bool {
                 let eps: Float = 1e-4
-                return abs(v.x - 1) > eps || abs(v.y - 1) > eps || abs(v.z - 1) > eps
+                return abs(v.x - Float(1)) > eps || abs(v.y - Float(1)) > eps || abs(v.z - Float(1)) > eps
             }
             func isNonZero(_ v: SCNVector3) -> Bool {
                 let eps: Float = 1e-4
@@ -984,7 +990,7 @@ private struct SnapshotHostingView: UIViewRepresentable {
         
         // 背景設定を更新
         updateSceneBackground(scene: scene, settings: appState.settings, size: previewSize)
-        
+                
         // スナップショット要求が来ている場合
         if shouldTakeSnapshot {
             context.coordinator.takeSnapshot()
@@ -1014,8 +1020,8 @@ private struct SnapshotHostingView: UIViewRepresentable {
         lightNode.light!.type = .directional
         lightNode.light!.color = UIColor.white
         lightNode.light!.intensity = 600
-        lightNode.position = SCNVector3(x: 0, y: 10, z: 10)
-        lightNode.eulerAngles = SCNVector3(x: -Float.pi/4, y: 0, z: 0)
+        lightNode.position = SCNVector3(x: Float(0), y: Float(10), z: Float(10))
+        lightNode.eulerAngles = SCNVector3(x: -Float.pi/4, y: Float(0), z: Float(0))
         scene.rootNode.addChildNode(lightNode)
         
         let ambientLightNode = SCNNode()

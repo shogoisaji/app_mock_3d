@@ -35,19 +35,19 @@ struct BottomAppBarView: View {
                     PillIconButton(symbol: "grid", action: onGridToggle, accessibilityId: "gridToggle")
                     
                     // ライティング調整（番号バッジつき）
-                    ZStack(alignment: .topTrailing) {
+                    ZStack(alignment: .bottomTrailing) {
                         PillIconButton(symbol: "lightbulb", action: onLightingAdjust, accessibilityId: "lightingAdjust")
-                        // バッジ（1〜10対応: 2桁でも視認性が保てるようサイズ調整）
+                        // バッジ
                         Text("\(max(1, min(10, lightingNumber)))")
                             .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.black)
                             .padding(.vertical, 3)
                             .padding(.horizontal, 5)
                             .background(
-                                Capsule().fill(Color.red.opacity(0.9))
-                                    .overlay(Capsule().stroke(Color.white.opacity(0.8), lineWidth: 0.6))
+                                Capsule().fill(Color.white)
+                                    .overlay(Capsule().stroke(Color.black.opacity(0.1), lineWidth: 1))
                             )
-                            .offset(x: 10, y: -10)
+                            .offset(x: 4, y: 4)
                             .accessibilityHidden(true)
                     }
                     

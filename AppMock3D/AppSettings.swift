@@ -15,8 +15,8 @@ struct AppSettings: Codable, Equatable {
     var maintainAspectRatio: Bool = true
     
     // 背景設定
-    var backgroundColor: BackgroundColorSetting = .solidColor
-    var solidColorValue: String = "#FFFFFF"
+    var backgroundColor: BackgroundColorSetting = .transparent
+    var solidColorValue: String = "#303135"
     var gradientType: GradientType = .linear
     var gradientStartColor: String = "#FFFFFF"
     var gradientEndColor: String = "#000000"

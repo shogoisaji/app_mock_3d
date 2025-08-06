@@ -23,12 +23,27 @@ struct MainView: View {
     
     var handleImageButtonPressed: () -> Void
     
+    // 設定に基づいた背景色を取得
+    private var backgroundColor: Color {
+        switch appState.settings.backgroundColor {
+        case .solidColor:
+            return Color(hex: appState.settings.solidColorValue) ?? Color(hex: "#303135") ?? Color(red: 48/255, green: 49/255, blue: 53/255)
+        case .gradient:
+            // グラデーションの場合は開始色を使用
+            return Color(hex: appState.settings.gradientStartColor) ?? Color(hex: "#303135") ?? Color(red: 48/255, green: 49/255, blue: 53/255)
+        case .transparent:
+            // 透明の場合はデフォルトのダークグレーを使用
+            return Color(hex: "#303135") ?? Color(red: 48/255, green: 49/255, blue: 53/255)
+        }
+    }
+    
     var body: some View {
         ZStack {
             Color(.clear)
-                .background(
-                    Color(hex: "#303135") ?? Color(red: 48/255, green: 49/255, blue: 53/255)
-                )
+                .background(backgroundColor)
+                .ignoresSafeArea()
+            Color(.clear)
+                .background(Color(.black.opacity(0.1)))
                 .ignoresSafeArea()
 
             Group {
