@@ -27,7 +27,7 @@ class ExportOptimizer {
                 // キャンセルチェック
                 if self.isCancelled {
                     DispatchQueue.main.async {
-                        completion(nil, NSError(domain: "ExportOptimizer", code: 1, userInfo: [NSLocalizedDescriptionKey: "エクスポートがキャンセルされました"]))
+                        completion(nil, NSError(domain: "ExportOptimizer", code: 1, userInfo: [NSLocalizedDescriptionKey: "Export was cancelled"]))
                     }
                     return
                 }
@@ -42,7 +42,7 @@ class ExportOptimizer {
                 // キャンセルチェック
                 if self.isCancelled {
                     DispatchQueue.main.async {
-                        completion(nil, NSError(domain: "ExportOptimizer", code: 1, userInfo: [NSLocalizedDescriptionKey: "エクスポートがキャンセルされました"]))
+                        completion(nil, NSError(domain: "ExportOptimizer", code: 1, userInfo: [NSLocalizedDescriptionKey: "Export was cancelled"]))
                     }
                     return
                 }

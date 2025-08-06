@@ -15,20 +15,20 @@ struct PreviewAreaView: View {
     @ObservedObject var appState: AppState
     @ObservedObject var imagePickerManager: ImagePickerManager
     @State private var currentScene: SCNScene
-    // 初期トランスフォーム保持（コンポーネント別）
+    // Hold initial transforms (per component)
     @State private var initialModelPosition: SCNVector3?
     @State private var initialModelScale: SCNVector3?
     @State private var initialModelEuler: SCNVector3?
     @State private var initialCameraTransform: SCNMatrix4?
-    // 操作対象ノードのパス（root からの名前列）。ジオメトリではなく「操作すべきコンテナ」ノードを指す
+    // Path to the target node (name sequence from root). Points to the "container" node to be manipulated, not the geometry.
     @State private var targetNodePath: [String] = []
-    // 追加: 現在のシーン更新を親へ伝える
+    // Added: Notify parent of current scene updates
     var onSceneUpdated: ((SCNScene) -> Void)? = nil
-    // 追加: カメラ姿勢更新を親へ伝える
+    // Added: Notify parent of camera posture updates
     var onCameraUpdated: ((SCNMatrix4) -> Void)? = nil
-    // 追加: スナップショット要求を受け取るコールバック
+    // Added: Callback to receive snapshot requests
     var onSnapshotRequested: ((UIImage?) -> Void)? = nil
-    // 追加: スナップショット要求のトリガー
+    // Added: Trigger for snapshot request
     @Binding var shouldTakeSnapshot: Bool
     
     init(scene: SCNScene, appState: AppState, imagePickerManager: ImagePickerManager, shouldTakeSnapshot: Binding<Bool>, onSceneUpdated: ((SCNScene) -> Void)? = nil, onCameraUpdated: ((SCNMatrix4) -> Void)? = nil, onSnapshotRequested: ((UIImage?) -> Void)? = nil) {
@@ -43,9 +43,9 @@ struct PreviewAreaView: View {
     }
     
     private func startInitialAnimation() {
-        // currentScene（表示中のシーン）に対してアニメーションを適用
+        // Apply animation to the currently displayed scene (currentScene)
         guard let manipulationRoot = currentScene.rootNode.childNode(withName: "manipulationRoot", recursively: false) else {
-            // manipulationRootがない場合は、最初のジオメトリを持つノードを探す
+            // If manipulationRoot is not found, find the first node with geometry
             if let geometryNode = findFirstGeometryNode(in: currentScene.rootNode) {
                 animateNodeAppearance(geometryNode)
             }
@@ -67,11 +67,11 @@ struct PreviewAreaView: View {
     }
     
     private func animateNodeAppearance(_ node: SCNNode) {
-        // 初期状態を設定（スケール: 0.5, 回転: -90度）
+        // Set initial state (scale: 0.5, rotation: -90 degrees)
         node.scale = SCNVector3(0.5, 0.5, 0.5)
-        node.eulerAngles = SCNVector3(0, -Float.pi/2, 0) // -90度回転
+        node.eulerAngles = SCNVector3(0, -Float.pi/2, 0) // -90 degree rotation
         
-        // 1秒でアニメーション（スケール: 1.0, 回転: 0度）
+        // Animate over 1 second (scale: 1.0, rotation: 0 degrees)
         SCNTransaction.begin()
         SCNTransaction.animationDuration = 1.0
         SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeOut)
@@ -110,7 +110,7 @@ struct PreviewAreaView: View {
             captureInitialTransforms: captureInitialTransforms
         )
         .onAppear {
-            // ビューが表示されたタイミングでアニメーションを開始
+            // Start the animation when the view appears
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 startInitialAnimation()
             }
@@ -319,9 +319,9 @@ private struct PreviewModifiersViewModifier: ViewModifier {
 
 extension PreviewAreaView {
     
-    // MARK: - ライティング適用
+    // MARK: - Apply Lighting
     private func applyLightingPreset(_ preset: AppState.LightingPreset) {
-        // 既存ライトを取得
+        // Get existing lights
         let main = currentScene.rootNode.childNode(withName: "mainLight", recursively: true)?.light
         let ambient = currentScene.rootNode.childNode(withName: "ambientLight", recursively: true)?.light
         let fill = currentScene.rootNode.childNode(withName: "fillLight", recursively: true)?.light
@@ -331,7 +331,7 @@ extension PreviewAreaView {
             main?.intensity = 480
             ambient?.intensity = 180
             fill?.intensity = 100
-            main?.temperature = 6500 // デイライト
+            main?.temperature = 6500 // Daylight
             fill?.temperature = 6500
         case .warm:
             main?.intensity = 520
@@ -347,7 +347,7 @@ extension PreviewAreaView {
             fill?.temperature = 8000
         }
 
-        // フィルライトの減衰を調整して「大きい光源」っぽい拡散感を出す
+        // Adjust the fill light's attenuation to create a diffuse effect like a large light source
         if let fillNode = currentScene.rootNode.childNode(withName: "fillLight", recursively: true),
            let fillLight = fillNode.light {
             fillLight.attenuationStartDistance = 8.0
@@ -356,31 +356,31 @@ extension PreviewAreaView {
         }
     }
 
-    // MARK: - ライティングポジション適用（1〜10）
+    // MARK: - Apply Lighting Position (1-10)
     private func applyLightingPosition(_ pos: AppState.LightingPosition) {
         guard
             let mainNode = currentScene.rootNode.childNode(withName: "mainLight", recursively: true),
             let mainLight = mainNode.light
         else { return }
-        // フィルライトは補助的に向きを合わせる
+        // Adjust the fill light's direction as a supplement
         let fillNode = currentScene.rootNode.childNode(withName: "fillLight", recursively: true)
         let fillLight = fillNode?.light
 
-        // ヘルパ: フィルライトの減衰（光源サイズ感）
+        // Helper: Fill light attenuation (light source size)
         func setFillAttenuation(start: CGFloat, end: CGFloat, falloff: CGFloat) {
             fillLight?.attenuationStartDistance = start
             fillLight?.attenuationEndDistance = end
             fillLight?.attenuationFalloffExponent = falloff
         }
 
-        // ベースのかなり弱い光量（プリセットでさらに弱められる前提）
-        // 位置パターン側でも微調整
+        // Base light intensity (can be further weakened by presets)
+        // Fine-tuned by position pattern
         var mainIntensity: CGFloat = 420
         var fillIntensity: CGFloat = 90
 
         switch pos {
         case .one:
-            // 右上前方からのやわらかい斜光
+            // Soft diagonal light from the top right front
             mainNode.position = SCNVector3(x: Float(4.0), y: Float(6.0), z: Float(6.0))
             mainNode.eulerAngles = SCNVector3(x: -Float.pi/4, y: -Float.pi/6, z: 0)
             fillNode?.position = SCNVector3(x: Float(-3.0), y: Float(2.5), z: Float(4.5))
@@ -388,7 +388,7 @@ extension PreviewAreaView {
             setFillAttenuation(start: 10, end: 26, falloff: 1.0)
             mainIntensity = 420; fillIntensity = 90
         case .two:
-            // 左上やや後方のトップ
+            // Top light from the top left, slightly behind
             mainNode.position = SCNVector3(x: Float(-6.5), y: Float(7.0), z: Float(1.5))
             mainNode.eulerAngles = SCNVector3(x: -Float.pi/3.8, y: Float.pi/7, z: 0)
             fillNode?.position = SCNVector3(x: Float(3.0), y: Float(2.0), z: Float(5.2))
@@ -396,7 +396,7 @@ extension PreviewAreaView {
             setFillAttenuation(start: 11, end: 28, falloff: 1.0)
             mainIntensity = 430; fillIntensity = 95
         case .three:
-            // 下手前からの持ち上げ
+            // Uplift from the bottom front
             mainNode.position = SCNVector3(x: Float(0.0), y: Float(-2.2), z: Float(6.8))
             mainNode.eulerAngles = SCNVector3(x: Float.pi/9, y: 0, z: 0)
             fillNode?.position = SCNVector3(x: Float(2.0), y: Float(4.2), z: Float(4.2))
@@ -404,7 +404,7 @@ extension PreviewAreaView {
             setFillAttenuation(start: 9, end: 24, falloff: 1.0)
             mainIntensity = 410; fillIntensity = 100
         case .four:
-            // 上後方のバックライト
+            // Backlight from the top rear
             mainNode.position = SCNVector3(x: Float(0.0), y: Float(7.5), z: Float(-4.5))
             mainNode.eulerAngles = SCNVector3(x: -Float.pi/2.6, y: 0, z: 0)
             fillNode?.position = SCNVector3(x: Float(0.0), y: Float(2.0), z: Float(6.2))
@@ -412,7 +412,7 @@ extension PreviewAreaView {
             setFillAttenuation(start: 12, end: 30, falloff: 1.0)
             mainIntensity = 400; fillIntensity = 85
         case .five:
-            // 右側面からのサイドライト
+            // Sidelight from the right
             mainNode.position = SCNVector3(x: Float(7.0), y: Float(1.5), z: Float(3.5))
             mainNode.eulerAngles = SCNVector3(x: -Float.pi/10, y: -Float.pi/3.2, z: 0)
             fillNode?.position = SCNVector3(x: Float(-2.5), y: Float(3.5), z: Float(5.0))
@@ -420,7 +420,7 @@ extension PreviewAreaView {
             setFillAttenuation(start: 10, end: 26, falloff: 1.1)
             mainIntensity = 430; fillIntensity = 95
         case .six:
-            // 左側面サイド＋ややトップ
+            // Left side light + slightly top
             mainNode.position = SCNVector3(x: Float(-7.0), y: Float(2.5), z: Float(3.0))
             mainNode.eulerAngles = SCNVector3(x: -Float.pi/8, y: Float.pi/3.4, z: 0)
             fillNode?.position = SCNVector3(x: Float(2.2), y: Float(3.2), z: Float(5.4))
@@ -428,7 +428,7 @@ extension PreviewAreaView {
             setFillAttenuation(start: 11, end: 27, falloff: 1.1)
             mainIntensity = 420; fillIntensity = 100
         case .seven:
-            // 下後方からのローポジション
+            // Low position from the bottom rear
             mainNode.position = SCNVector3(x: Float(0.0), y: Float(-3.5), z: Float(-2.0))
             mainNode.eulerAngles = SCNVector3(x: Float.pi/2.8, y: 0, z: 0)
             fillNode?.position = SCNVector3(x: Float(1.0), y: Float(3.8), z: Float(5.0))
@@ -436,7 +436,7 @@ extension PreviewAreaView {
             setFillAttenuation(start: 12, end: 32, falloff: 1.0)
             mainIntensity = 380; fillIntensity = 90
         case .eight:
-            // 右上前方のハイキー寄り
+            // High-key from the top right front
             mainNode.position = SCNVector3(x: Float(5.5), y: Float(7.0), z: Float(6.5))
             mainNode.eulerAngles = SCNVector3(x: -Float.pi/3.8, y: -Float.pi/7, z: 0)
             fillNode?.position = SCNVector3(x: Float(-2.0), y: Float(1.8), z: Float(4.8))
@@ -444,7 +444,7 @@ extension PreviewAreaView {
             setFillAttenuation(start: 13, end: 34, falloff: 1.0)
             mainIntensity = 450; fillIntensity = 100
         case .nine:
-            // 左上前方のローキー寄り
+            // Low-key from the top left front
             mainNode.position = SCNVector3(x: Float(-5.5), y: Float(6.0), z: Float(5.5))
             mainNode.eulerAngles = SCNVector3(x: -Float.pi/4.5, y: Float.pi/8, z: 0)
             fillNode?.position = SCNVector3(x: Float(2.5), y: Float(2.0), z: Float(5.5))
@@ -452,7 +452,7 @@ extension PreviewAreaView {
             setFillAttenuation(start: 10, end: 28, falloff: 1.2)
             mainIntensity = 410; fillIntensity = 95
         case .ten:
-            // 上方正面やや遠方からのディフューズ
+            // Diffuse from the top front, slightly distant
             mainNode.position = SCNVector3(x: Float(0.0), y: Float(9.0), z: Float(8.5))
             mainNode.eulerAngles = SCNVector3(x: -Float.pi/3.2, y: 0, z: 0)
             fillNode?.position = SCNVector3(x: Float(0.0), y: Float(2.2), z: Float(6.8))
@@ -461,15 +461,15 @@ extension PreviewAreaView {
             mainIntensity = 440; fillIntensity = 105
         }
 
-        // 強度適用（ポジション側の微調整）。プリセットとは別レイヤーで最後に上書きされ得る点に注意。
+        // Apply intensity (fine-tuned on the position side). Note that this can be overwritten by the preset on the last layer.
         mainLight.intensity = mainIntensity
         fillLight?.intensity = fillIntensity
     }
     
-    // MARK: - 変換のリセット（AppStateの保持値を0/1/0へ）
+    // MARK: - Reset Transform (to 0/1/0 for AppState values)
     private func resetSceneTransform() {
-        // AppStateの値をアニメーション付きでリセット
-        withAnimation(.easeInOut(duration: 0.8)) {
+        // Reset AppState values with animation
+        withAnimation(.easeIn(duration: 0.7)) {
             appState.resetObjectTransformState()
         }
     }
@@ -480,14 +480,14 @@ extension PreviewAreaView {
     
     
     
-    // 追加: 可能性のある全てのノードをリセット
+    // Added: Reset all possible nodes
     private func resetAllPossibleNodes() {
         var allNodes: [SCNNode] = []
         collectAllNodes(from: currentScene.rootNode, into: &allNodes)
         
         for node in allNodes {
             let name = node.name?.lowercased() ?? ""
-            // カメラやライト以外で、ジオメトリを持つか特定の名前を持つノードをリセット
+            // Reset nodes that are not cameras or lights and have geometry or specific names
             if !name.contains("camera") && !name.contains("light") {
                 if node.geometry != nil || name.contains("model") || name.contains("iphone") {
                     print("[DEBUG] Resetting node: \(node.name ?? "unnamed") - pos=\(node.position), euler=\(node.eulerAngles), scale=\(node.scale)")
@@ -504,7 +504,7 @@ extension PreviewAreaView {
     
     
 
-    /// ツリーを深さ優先で探索し、ジオメトリを持つ最初のノードを返す
+    /// Depth-first search of the tree to return the first node with geometry
     private func firstGeometryNode(in root: SCNNode) -> SCNNode? {
         if root.geometry != nil {
             return root
@@ -517,29 +517,29 @@ extension PreviewAreaView {
         return nil
     }
 
-    /// ノードへの「名前パス」を構築（root -> child.name...）
+    /// Build a "name path" to the node (root -> child.name...)
     private func buildNamePath(for node: SCNNode) -> [String] {
         var path: [String] = []
         var current: SCNNode? = node
         while let n = current, let name = n.name {
             path.insert(name, at: 0)
             current = n.parent
-            if current?.parent == nil { // rootNode の直下に到達したら終了
+            if current?.parent == nil { // Stop when the direct child of the rootNode is reached
                 break
             }
         }
         return path
     }
 
-    /// 名前パスからノードを辿って取得
+    /// Traverse and get a node from the name path
     private func node(from root: SCNNode, by path: [String]) -> SCNNode? {
-        // 空 or ["root"] の場合は root を返す（ログに root が出るだけで実質意味がないため回避する）
+        // If empty or ["root"], return root (avoiding this as it's meaningless to have only root in the log)
         if path.isEmpty || (path.count == 1 && path.first?.lowercased() == "root") {
             return nil
         }
         var current: SCNNode? = root
         for segment in path {
-            // 最初のセグメントが "root" の場合はスキップ
+            // Skip if the first segment is "root"
             if segment.lowercased() == "root" { continue }
             current = current?.childNode(withName: segment, recursively: false)
             if current == nil { break }
@@ -547,12 +547,12 @@ extension PreviewAreaView {
         return current
     }
 
-    /// iPhone本体らしいノードを推定して返す
+    /// Estimate and return a node that appears to be the iPhone body
     private func findIPhoneBodyNode(from root: SCNNode) -> SCNNode? {
         var all: [SCNNode] = []
         collectAllNodes(from: root, into: &all)
 
-        // 1) 名前ヒューリスティックス（小文字で含む）
+        // 1) Name heuristics (contains in lowercase)
         let keywords = ["iphone", "device", "phone", "body", "model"]
         if let nodeByName = all.first(where: { node in
             let name = node.name?.lowercased() ?? ""
@@ -561,7 +561,7 @@ extension PreviewAreaView {
             return nodeByName
         }
 
-        // 2) ジオメトリの規模（頂点数/面数）で最大のもの
+        // 2) The one with the largest geometry size (number of vertices/faces)
         let nodeByGeometrySize = all
             .filter { $0.geometry != nil }
             .max(by: { lhs, rhs in
@@ -571,11 +571,11 @@ extension PreviewAreaView {
             return candidate
         }
 
-        // 3) 見つからない場合はnil
+        // 3) If not found, return nil
         return nil
     }
 
-    /// 再帰的に全ノード収集
+    /// Recursively collect all nodes
     private func collectAllNodes(from node: SCNNode, into array: inout [SCNNode]) {
         array.append(node)
         for child in node.childNodes {
@@ -583,36 +583,36 @@ extension PreviewAreaView {
         }
     }
 
-    /// 操作対象に適した「コンテナ」ノードを推定して返す
-    /// 1) 最大ジオメトリを持つノードを見つける
-    /// 2) その親方向に遡って、最初に見つかる「ジオメトリを持たない親」（グループ/コンテナ）を優先採用
-    /// 3) 見つからなければ最大ジオメトリノード自身を採用
+    /// Estimate and return a "container" node suitable for manipulation
+    /// 1) Find the node with the largest geometry
+    /// 2) Go up its parent direction and prioritize the first found "parent without geometry" (group/container)
+    /// 3) If not found, adopt the largest geometry node itself
     private func findManipulableContainerNode(from root: SCNNode) -> SCNNode? {
         var all: [SCNNode] = []
         collectAllNodes(from: root, into: &all)
 
-        // 最大ジオメトリノード
+        // Largest geometry node
         let biggestGeoNode = all
             .filter { $0.geometry != nil }
             .max(by: { geometryWeight($0.geometry!) < geometryWeight($1.geometry!) })
 
         guard let node = biggestGeoNode else {
-            // フォールバック: 最初のジオメトリ
+            // Fallback: first geometry
             return firstGeometryNode(in: root)
         }
 
-        // 親へ遡って「操作対象に適したコンテナ」を優先
-        // ヒューリスティック:
-        //  - 名前に Container/Rotation/Transform/Group/Root を含む親を優先
-        //  - それが無ければ、非ユニタリスケール / 非ゼロ回転 / 非ゼロ位置を持つ親を優先（ユーザー操作が載っている可能性）
-        //  - 最後に「ジオメトリ無し」の親
+        // Go up to the parent and prioritize a "container suitable for manipulation"
+        // Heuristics:
+        //  - Prioritize parents whose names contain Container/Rotation/Transform/Group/Root
+        //  - If none, prioritize parents with non-unitary scale / non-zero rotation / non-zero position (likely to have user operations)
+        //  - Finally, parents with "no geometry"
         var best: SCNNode = node
         var current: SCNNode? = node
         let nameHints = ["container", "rotation", "transform", "group", "root"]
         while let parent = current?.parent, parent !== root {
             let lname = parent.name?.lowercased() ?? ""
             let hasNameHint = nameHints.first(where: { lname.contains($0) }) != nil
-            // SCNVector3 の比較は各成分で判定（浮動小数のため閾値付き）
+            // Compare SCNVector3 by each component (with a threshold for floating point numbers)
             func isNonUnit(_ v: SCNVector3) -> Bool {
                 let eps: Float = 1e-4
                 return abs(v.x - Float(1)) > eps || abs(v.y - Float(1)) > eps || abs(v.z - Float(1)) > eps
@@ -633,9 +633,9 @@ extension PreviewAreaView {
         return best
     }
 
-    /// ジオメトリ規模の簡易評価
+    /// Simple evaluation of geometry size
     private func geometryWeight(_ geom: SCNGeometry) -> Int {
-        // 面数と頂点数を合算して簡易スコアを算出
+        // Calculate a simple score by summing the number of faces and vertices
         let elements: [SCNGeometryElement] = geom.elements
         let faces = elements.reduce(0) { $0 + $1.primitiveCount }
         
@@ -645,14 +645,14 @@ extension PreviewAreaView {
         return faces * 4 + vertices
     }
 
-    // MARK: - 初期Transformのキャプチャ（デバッグログ付き）
+    // MARK: - Capture Initial Transform (with debug logs)
     private func captureInitialTransforms() {
-        // まず最大ジオメトリを基準にし、その上位から「操作対象コンテナ」を推定
+        // First, estimate the "manipulable container" from the top of the largest geometry
         var container = findManipulableContainerNode(from: currentScene.rootNode)
             ?? findIPhoneBodyNode(from: currentScene.rootNode)
             ?? firstGeometryNode(in: currentScene.rootNode)
 
-        // 名前の無いノードばかりでパスが作れない場合は、ルート直下に「manipulationRoot」を用意してそこにぶら下げる（初回のみ）
+        // If a path cannot be created because there are only unnamed nodes, prepare a "manipulationRoot" directly under the root and attach them to it (only for the first time)
         if container == nil {
             container = currentScene.rootNode.childNode(withName: "manipulationRoot", recursively: false)
             if container == nil {
@@ -666,7 +666,7 @@ extension PreviewAreaView {
                 }
                 
                 for child in childrenToMove {
-                    // ワールド座標を維持して再親化
+                    // Reparent while maintaining world coordinates
                     let worldTransform = child.worldTransform
                     child.removeFromParentNode()
                     newRoot.addChildNode(child)
@@ -703,18 +703,18 @@ extension PreviewAreaView {
             print("[Capture] target not found")
         }
 
-        // カメラ
+        // Camera
         let cameraNode = currentScene.rootNode.childNode(withName: "camera", recursively: true)
         initialCameraTransform = cameraNode?.transform
     }
     
     private func updateSceneWithImage(_ image: UIImage?, size: CGSize) {
         guard let image = image else {
-            // 画像がクリアされた場合、現在のシーンからテクスチャだけをクリア
+            // If the image is cleared, clear only the texture from the current scene
             appState.clearImageState()
             
             withAnimation(.easeInOut(duration: 0.3)) {
-                // 現在のシーンからテクスチャをクリア（Transform状態は維持される）
+                // Clear the texture from the current scene (transform state is maintained)
                 if let clearedScene = TextureManager.shared.clearTextureFromModel(currentScene) {
                     currentScene = clearedScene
                     updateSceneBackground(appState.settings, size: size)
@@ -722,81 +722,81 @@ extension PreviewAreaView {
                 }
             }
             
-            // 親へ最新シーンを通知
+            // Notify parent of the latest scene
             onSceneUpdated?(currentScene)
             return
         }
         
-        // 画像の有効性をチェック
+        // Check image validity
         guard image.size.width > 0 && image.size.height > 0 else {
             DispatchQueue.main.async {
-                appState.setImageError("無効な画像です。別の画像を選択してください。")
+                appState.setImageError("Invalid image. Please select another image.")
             }
             return
         }
         
-        // 処理開始を通知
+        // Notify that processing has started
         DispatchQueue.main.async {
             appState.setImageProcessing(true)
         }
         
-        // 非同期でテクスチャを適用
+        // Apply texture asynchronously
         DispatchQueue.global(qos: .userInitiated).async {
-            // メモリ使用量をチェック
+            // Check memory usage
             let memoryUsage = Self.getMemoryUsage()
-            if memoryUsage > 0.8 { // 80%以上の場合
+            if memoryUsage > 0.8 { // If over 80%
                 TextureManager.shared.clearCache()
             }
             
-            // テクスチャ適用を実行
+            // Execute texture application
             if let updatedScene = TextureManager.shared.applyTextureToModel(self.currentScene, image: image) {
                 DispatchQueue.main.async {
-                    // 現在のTransformが維持されたシーンをそのまま設定
+                    // Set the scene with the current transform maintained
                     withAnimation(.easeInOut(duration: 0.3)) {
                         self.currentScene = updatedScene
                         self.updateSceneBackground(self.appState.settings, size: size)
                     }
                     
-                    // 親へ最新シーンを通知
+                    // Notify parent of the latest scene
                     self.onSceneUpdated?(updatedScene)
                     self.appState.setImageApplied(true)
                     self.appState.setImageProcessing(false)
                 }
             } else {
                 DispatchQueue.main.async {
-                    appState.setImageError("テクスチャの適用に失敗しました。3Dモデルに画面が見つからない可能性があります。")
+                    appState.setImageError("Failed to apply texture. The screen may not be found in the 3D model.")
                 }
             }
         }
     }
     
-    // MARK: - グリッドオーバーレイ
+    // MARK: - Grid Overlay
     struct GridOverlayView: View {
-        // 画面密度やサイズに合わせて自動調整するが、基本は縦横に一定間隔でラインを描画
-        var majorStep: Int = 4     // 太線の分割数（例: 4分割）
-        var minorPerMajor: Int = 4 // 各メジャーの間を更に分割する数（細線）
+        // Automatically adjusts to screen density and size, but basically draws lines at regular intervals vertically and horizontally
+        var majorStep: Int = 4     // Number of divisions for thick lines (e.g., 4 divisions)
+        var minorPerMajor: Int = 4 // Number of further divisions between each major (thin lines)
     
         var body: some View {
             GeometryReader { geo in
                 let width = geo.size.width
                 let height = geo.size.height
     
-                // 計算
+                // Calculation
                 let majorColumns = CGFloat(majorStep)
                 let majorRows = CGFloat(majorStep)
                 let minorColumns = majorColumns * CGFloat(minorPerMajor)
                 let minorRows = majorRows * CGFloat(minorPerMajor)
     
                 ZStack {
-                    // マイナーグリッド（薄い）
+                    // Minor grid (light)
                     Path { path in
-                        // 縦線
+                        // Vertical lines
                         for i in 1..<Int(minorColumns) {
                             let x = width * CGFloat(i) / minorColumns
                             path.move(to: CGPoint(x: x, y: 0))
                             path.addLine(to: CGPoint(x: x, y: height))
                         }
-                        // 横線
+                        // Horizontal lines
                         for j in 1..<Int(minorRows) {
                             let y = height * CGFloat(j) / minorRows
                             path.move(to: CGPoint(x: 0, y: y))
@@ -805,15 +805,15 @@ extension PreviewAreaView {
                     }
                     .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
     
-                    // メジャーグリッド（やや強い）
+                    // Major grid (slightly stronger)
                     Path { path in
-                        // 縦線
+                        // Vertical lines
                         for i in 1..<Int(majorColumns) {
                             let x = width * CGFloat(i) / majorColumns
                             path.move(to: CGPoint(x: x, y: 0))
                             path.addLine(to: CGPoint(x: x, y: height))
                         }
-                        // 横線
+                        // Horizontal lines
                         for j in 1..<Int(majorRows) {
                             let y = height * CGFloat(j) / majorRows
                             path.move(to: CGPoint(x: 0, y: y))
@@ -822,11 +822,11 @@ extension PreviewAreaView {
                     }
                     .stroke(Color.white.opacity(0.35), lineWidth: 1.0)
     
-                    // 外枠を少し強調
+                    // Emphasize the outer frame slightly
                     RoundedRectangle(cornerRadius: 0)
                         .stroke(Color.white.opacity(0.6), lineWidth: 1)
                 }
-                .blendMode(.screen) // 暗い背景の上で見やすくする
+                .blendMode(.screen) // Make it easier to see on a dark background
             }
         }
     }
@@ -884,9 +884,9 @@ extension PreviewAreaView {
         }
     }
     
-    // AppStateに保持している Transform を manipulationRoot へ適用
+    // Apply the transform held in AppState to manipulationRoot
     private func applyAppStateTransform() {
-        // 操作用ルートを取得（無ければ作成）
+        // Get the root for manipulation (create if it doesn't exist)
         let root = ensureManipulationRoot()
         
         
@@ -898,25 +898,25 @@ extension PreviewAreaView {
         
     }
 
-    // manipulationRoot を返す（無ければライト/カメラ以外をぶら下げて作成）
+    // Returns manipulationRoot (if it doesn't exist, create it by hanging everything except lights/cameras)
     @discardableResult
     private func ensureManipulationRoot() -> SCNNode {
         if let node = currentScene.rootNode.childNode(withName: "manipulationRoot", recursively: false) {
             return node
         }
-        // 新規作成して、ライトとカメラ以外を再親化
+        // Create a new one and reparent everything except lights and cameras
         let newRoot = SCNNode()
         newRoot.name = "manipulationRoot"
         currentScene.rootNode.addChildNode(newRoot)
 
-        // 現在の直下の子を走査して、ライト/カメラ以外を移動
+        // Scan the current direct children and move everything except lights/cameras
         let children = currentScene.rootNode.childNodes.filter {
             let lname = ($0.name ?? "").lowercased()
             return lname != "manipulationroot" && !lname.contains("light") && !lname.contains("camera")
         }
         
         for child in children {
-            // ワールド座標を維持して再親化
+            // Reparent while maintaining world coordinates
             let worldTransform = child.worldTransform
             child.removeFromParentNode()
             newRoot.addChildNode(child)
@@ -926,16 +926,16 @@ extension PreviewAreaView {
     }
 }
 
-/// SCNView を SwiftUI 上にホストして、白枠サイズで見えているまま snapshot を取得できるようにするビュー
+/// A view that hosts an SCNView on SwiftUI and allows taking a snapshot of what is visible within the white frame size
 private struct SnapshotHostingView: UIViewRepresentable {
     var scene: SCNScene
     var previewSize: CGSize
     @Binding var shouldTakeSnapshot: Bool
-    // 追加: カメラ姿勢の更新を通知するコールバック
+    // Added: Callback to notify of camera posture updates
     var onCameraUpdate: ((SCNMatrix4) -> Void)?
-    // 追加: スナップショット要求を受け取るコールバック
+    // Added: Callback to receive snapshot requests
     var onSnapshotRequested: ((UIImage?) -> Void)?
-    // AppStateを渡すためのプロパティ
+    // Property to pass AppState
     var appState: AppState
 
     func makeCoordinator() -> Coordinator {
@@ -946,12 +946,12 @@ private struct SnapshotHostingView: UIViewRepresentable {
         let scnView = SCNView(frame: CGRect(origin: .zero, size: previewSize))
         scnView.translatesAutoresizingMaskIntoConstraints = false
         scnView.scene = scene
-        // 背景色はシーンで管理するため、SCNViewの背景は透明にしない
+        // Since the background color is managed by the scene, do not make the SCNView background transparent
         scnView.backgroundColor = .black
-        // オブジェクト操作に変更（カメラ操作ではなく）
+        // Changed to object manipulation (not camera manipulation)
         scnView.allowsCameraControl = false
         
-        // CoordinatorにAppStateを設定してジェスチャーをセットアップ
+        // Set AppState in Coordinator and set up gestures
         context.coordinator.appState = appState
         context.coordinator.setupObjectManipulationGestures(for: scnView)
         scnView.showsStatistics = false
@@ -961,17 +961,17 @@ private struct SnapshotHostingView: UIViewRepresentable {
         scnView.contentMode = .scaleAspectFill
         scnView.layer.masksToBounds = true
         
-        // デリゲートを設定してカメラの更新を検知
+        // Set the delegate to detect camera updates
         scnView.delegate = context.coordinator
         
-        // Coordinatorに SCNView の参照を渡す
+        // Pass a reference to the SCNView to the Coordinator
         context.coordinator.scnView = scnView
         
-        // 照明/カメラセットアップ（ContentView.PreviewView と整合）
+        // Lighting/camera setup (consistent with ContentView.PreviewView)
         setupLighting(for: scene)
         setupCamera(for: scene)
         
-        // 初期背景設定を適用
+        // Apply initial background settings
         updateSceneBackground(scene: scene, settings: appState.settings, size: previewSize)
         
         return scnView
@@ -984,29 +984,29 @@ private struct SnapshotHostingView: UIViewRepresentable {
         uiView.setNeedsLayout()
         uiView.layoutIfNeeded()
         
-        // Coordinatorの SCNView 参照とAppStateを更新
+        // Update the SCNView reference and AppState in the Coordinator
         context.coordinator.scnView = uiView
         context.coordinator.appState = appState
         
-        // 背景設定を更新
+        // Update background settings
         updateSceneBackground(scene: scene, settings: appState.settings, size: previewSize)
                 
-        // スナップショット要求が来ている場合
+        // If a snapshot is requested
         if shouldTakeSnapshot {
             context.coordinator.takeSnapshot()
-            // フラグをリセット
+            // Reset the flag
             DispatchQueue.main.async {
                 shouldTakeSnapshot = false
             }
         }
     }
     
-    // 現在の見た目を白枠サイズそのままでスナップショット
-    // 注意: UIViewRepresentable の makeUIView を直接呼ばず、表示中の SCNView の snapshot を使う
+    // Snapshot the current appearance as is within the white frame size
+    // Note: Do not call makeUIView of UIViewRepresentable directly, but use the snapshot of the currently displayed SCNView
     func snapshotImage(from uiView: SCNView) -> UIImage? {
-        // SCNView の snapshot() は現在のカメラ状態・描画内容を反映
+        // The snapshot() of SCNView reflects the current camera state and drawing content
         let raw = uiView.snapshot()
-        // すでに previewSize でフレーム設定しているため、そのまま返せる
+        // Since the frame is already set with previewSize, it can be returned as is
         return raw
     }
     
@@ -1038,7 +1038,7 @@ private struct SnapshotHostingView: UIViewRepresentable {
         fillLightNode.light!.type = .omni
         fillLightNode.light!.color = UIColor(white: 0.6, alpha: 1.0)
         fillLightNode.light!.intensity = 100
-        // 拡散感（光源を大きく感じるように減衰を緩やかに）
+        // Diffuse feeling (make the attenuation gentle to feel like a large light source)
         fillLightNode.light!.attenuationStartDistance = 8.0
         fillLightNode.light!.attenuationEndDistance = 22.0
         fillLightNode.light!.attenuationFalloffExponent = 1.0
@@ -1108,14 +1108,14 @@ private struct SnapshotHostingView: UIViewRepresentable {
             super.init()
         }
         
-        // オブジェクト操作ジェスチャーをセットアップ
+        // Set up object manipulation gestures
         func setupObjectManipulationGestures(for scnView: SCNView) {
-            // パンジェスチャー
+            // Pan gesture
             let panGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePanGesture(_:)))
             panGesture.maximumNumberOfTouches = 2
             scnView.addGestureRecognizer(panGesture)
             
-            // ピンチジェスチャー
+            // Pinch gesture
             let pinchGesture = UIPinchGestureRecognizer(target: self, action: #selector(handlePinchGesture(_:)))
             scnView.addGestureRecognizer(pinchGesture)
         }
@@ -1127,7 +1127,7 @@ private struct SnapshotHostingView: UIViewRepresentable {
             
             if gesture.state == .changed {
                 switch gesture.numberOfTouches {
-                case 1: // 1本指：回転
+                case 1: // 1 finger: rotation
                     let rotationX = Float(translation.y) * 0.01
                     let rotationY = Float(translation.x) * 0.01
                     
@@ -1136,7 +1136,7 @@ private struct SnapshotHostingView: UIViewRepresentable {
                     
                     appState.setObjectEuler(newEuler)
                     
-                case 2: // 2本指：位置移動
+                case 2: // 2 fingers: position movement
                     let moveX = Float(translation.x) * 0.005
                     let moveY = Float(translation.y) * -0.005
                     
@@ -1164,7 +1164,7 @@ private struct SnapshotHostingView: UIViewRepresentable {
                 let newScaleY = oldScale.y * scale
                 let newScaleZ = oldScale.z * scale
                 
-                // スケール制限
+                // Scale limit
                 let minScale: Float = 0.5
                 let maxScale: Float = 3.0
                 let clampedScale = SCNVector3(
@@ -1180,7 +1180,7 @@ private struct SnapshotHostingView: UIViewRepresentable {
         }
 
         func renderer(_ renderer: SCNSceneRenderer, didRenderScene scene: SCNScene, atTime time: TimeInterval) {
-            // カメラの transform (姿勢) を取得して通知
+            // Get the camera's transform (posture) and notify
             if let pov = renderer.pointOfView {
                 onCameraUpdate?(pov.transform)
             }
@@ -1192,7 +1192,7 @@ private struct SnapshotHostingView: UIViewRepresentable {
                 return
             }
             
-            // スナップショット取得前に最新のカメラトランスフォームを通知
+            // Notify the latest camera transform before taking a snapshot
             if let pov = scnView.pointOfView {
                 onCameraUpdate?(pov.transform)
             }

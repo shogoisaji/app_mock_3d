@@ -14,13 +14,13 @@ struct OverlayView: View {
 
     var body: some View {
         ZStack {
-            // ローディング状態の表示
+            // Display loading state
             if appState.isImageProcessing {
                 VStack {
                     ProgressView()
                         .scaleEffect(1.5)
                         .progressViewStyle(CircularProgressViewStyle(tint: Color(hex: "#E99370") ?? .orange))
-                    Text("画像を処理中...")
+                    Text("Processing Image...")
                         .foregroundColor(Color(hex: "#E99370") ?? .orange)
                         .padding(.top)
                 }
@@ -28,13 +28,13 @@ struct OverlayView: View {
                 .background(Color.black.opacity(0.5))
             }
 
-            // エラー状態の表示
+            // Display error state
             if let error = appState.imageError {
                 VStack {
                     Image(systemName: "exclamationmark.triangle")
                         .font(.system(size: 50))
                         .foregroundColor(Color(hex: "#E99370") ?? .orange)
-                    Text("エラー")
+                    Text("Error")
                         .font(.headline)
                         .foregroundColor(Color(hex: "#E99370") ?? .orange)
                     Text(error)
@@ -42,7 +42,7 @@ struct OverlayView: View {
                         .foregroundColor(Color(hex: "#E99370") ?? .orange)
                         .multilineTextAlignment(.center)
                         .padding()
-                    Button("再試行") {
+                    Button("Retry") {
                         appState.clearImageState()
                     }
                     .foregroundColor(.black)
@@ -54,13 +54,13 @@ struct OverlayView: View {
                 .background(Color.black.opacity(0.7))
             }
 
-            // 保存中の表示
+            // Display saving state
             if isSaving {
                 VStack {
                     ProgressView()
                         .scaleEffect(1.5)
                         .progressViewStyle(CircularProgressViewStyle(tint: Color(hex: "#E99370") ?? .orange))
-                    Text("画像を保存中...")
+                    Text("Saving Image...")
                         .foregroundColor(Color(hex: "#E99370") ?? .orange)
                         .padding(.top)
                 }

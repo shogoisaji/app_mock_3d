@@ -23,16 +23,16 @@ struct MainView: View {
     
     var handleImageButtonPressed: () -> Void
     
-    // 設定に基づいた背景色を取得
+    // Get the background color based on settings
     private var backgroundColor: Color {
         switch appState.settings.backgroundColor {
         case .solidColor:
             return Color(hex: appState.settings.solidColorValue) ?? Color(hex: "#303135") ?? Color(red: 48/255, green: 49/255, blue: 53/255)
         case .gradient:
-            // グラデーションの場合は開始色を使用
+            // Use the start color for gradients
             return Color(hex: appState.settings.gradientStartColor) ?? Color(hex: "#303135") ?? Color(red: 48/255, green: 49/255, blue: 53/255)
         case .transparent:
-            // 透明の場合はデフォルトのダークグレーを使用
+            // Use the default dark gray for transparent
             return Color(hex: "#303135") ?? Color(red: 48/255, green: 49/255, blue: 53/255)
         }
     }
@@ -62,7 +62,7 @@ struct MainView: View {
                         OverlayView(appState: appState, isSaving: $isSaving)
                     }
                 } else {
-                    Text("3Dモデルを読み込んでいます...")
+                    Text("Loading 3D Model...")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .accessibilityIdentifier("Loading 3D Model")
                 }

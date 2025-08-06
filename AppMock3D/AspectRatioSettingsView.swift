@@ -7,7 +7,7 @@ struct AspectRatioSettingsView: View {
     var body: some View {
         VStack(spacing: 20) {
             HStack {
-                Text("アスペクト比設定")
+                Text("Aspect Ratio Settings")
                     .font(.title2)
                     .fontWeight(.bold)
                 Spacer()
@@ -16,10 +16,10 @@ struct AspectRatioSettingsView: View {
             
             // Preset selection
             VStack(alignment: .leading, spacing: 10) {
-                Text("プリセット")
+                Text("Preset")
                     .font(.headline)
                 
-                Picker("アスペクト比プリセット", selection: $settings.aspectRatioPreset) {
+                Picker("Aspect Ratio Preset", selection: $settings.aspectRatioPreset) {
                     ForEach(AppSettings.AspectRatioPreset.allCases, id: \.rawValue) { preset in
                         Text(preset.rawValue).tag(preset)
                     }
@@ -29,7 +29,7 @@ struct AspectRatioSettingsView: View {
             
             // Custom aspect ratio
             VStack(alignment: .leading, spacing: 10) {
-                Text("カスタムアスペクト比")
+                Text("Custom Aspect Ratio")
                     .font(.headline)
                 
                 HStack {
@@ -49,7 +49,7 @@ struct AspectRatioSettingsView: View {
             
             // Current aspect ratio display
             VStack(alignment: .leading, spacing: 10) {
-                Text("現在のアスペクト比")
+                Text("Current Aspect Ratio")
                     .font(.headline)
                 
                 Text(getCurrentAspectRatio())
@@ -63,7 +63,7 @@ struct AspectRatioSettingsView: View {
             
             // Action buttons
             HStack {
-                Button("キャンセル") {
+                Button("Cancel") {
                     isPresented = false
                 }
                 .padding()
@@ -71,7 +71,7 @@ struct AspectRatioSettingsView: View {
                 .background(Color(.systemGray5))
                 .cornerRadius(8)
                 
-                Button("適用") {
+                Button("Apply") {
                     settings.save()
                     isPresented = false
                 }

@@ -43,7 +43,7 @@ struct ThreeDSceneView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .accessibilityIdentifier("3D Preview")
         } else {
-            Text("3Dモデルを読み込んでいます...")
+            Text("Loading 3D Model...")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .accessibilityIdentifier("Loading 3D Model")
         }

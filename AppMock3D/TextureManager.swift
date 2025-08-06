@@ -15,9 +15,9 @@ class TextureManager {
         textureCache.countLimit = 100
         
         sceneCache.totalCostLimit = maxCacheSize
-        sceneCache.countLimit = 10 // シーンの数を制限
+        sceneCache.countLimit = 10 // Limit the number of scenes
         
-        // メモリ警告の監視
+        // Monitor for memory warnings
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(handleMemoryWarning),
@@ -31,38 +31,38 @@ class TextureManager {
     }
     
     func applyTextureToModel(_ model: SCNScene, image: UIImage) -> SCNScene? {
-        // 画像を最適化（必要に応じてリサイズ）
+        // Optimize the image (resize if necessary)
         let optimizedImage = optimizeImageForTexture(image)
         
-        // デバッグ: 画像情報を出力
+        // Debug: Output image information
         print("=== Image Debug Info ===")
         print("Original image size: \(image.size)")
         print("Optimized image size: \(optimizedImage.size)")
         print("Image scale: \(optimizedImage.scale)")
         print("========================")
         
-        // 既存のシーンを直接修正する（新しいシーンを作らない）
+        // Modify the existing scene directly (do not create a new scene)
         let workingScene = model
         
         print("Using existing scene (no deep copy)")
         
-        // デバッグ: ノード構造を出力
+        // Debug: Output node structure
         print("=== TextureManager: Scene Node Structure ===")
         debugSceneStructure(workingScene.rootNode, level: 0)
         print("=== End Scene Node Structure ===")
         
-        // iPhoneモデルの画面部分のみにテクスチャを適用
+        // Apply texture only to the screen part of the iPhone model
         var screenFound = false
         var screenNodeCandidates: [(SCNNode, String)] = []
         
         workingScene.rootNode.enumerateChildNodes { (node, stop) in
-            // ノード名とジオメトリの存在をチェック
+            // Check node name and geometry existence
             let nodeName = node.name?.lowercased() ?? ""
             let hasGeometry = node.geometry != nil
             
             print("Checking node: '\(node.name ?? "unnamed")' (has geometry: \(hasGeometry))")
             
-            // ジオメトリがある場合、その詳細も出力
+            // If geometry exists, output its details as well
             if hasGeometry, let geometry = node.geometry {
                 print("  └─ Geometry type: \(type(of: geometry))")
                 print("  └─ Materials count: \(geometry.materials.count)")
@@ -73,7 +73,7 @@ class TextureManager {
                 }
             }
             
-            // 画面ノードを特定（複数の可能性のある名前をチェック）
+            // Identify the screen node (check for multiple possible names)
             let possibleScreenNames = ["screen", "Screen", "display", "Display", "LCD", "OLED", "Screen_Border", "Ellipse_2_Material"]
             
             let isScreenNode = possibleScreenNames.contains { screenName in
@@ -84,13 +84,13 @@ class TextureManager {
                 print("✓ Found screen node: '\(node.name ?? "unnamed")'")
                 screenNodeCandidates.append((node, node.name ?? "unnamed"))
             } else if hasGeometry {
-                // スクリーン名でなくても、ジオメトリを持つノードは候補として追加
+                // Even if it's not a screen name, add nodes with geometry as candidates
                 screenNodeCandidates.append((node, node.name ?? "unnamed"))
                 print("Added geometry node as candidate: '\(node.name ?? "unnamed")'")
             }
         }
         
-        // 最適な画面ノードを選択（"screen"が最優先、次に"Screen_Border"）
+        // Select the optimal screen node ("screen" has the highest priority, followed by "Screen_Border")
         if let screenNode = screenNodeCandidates.first(where: { $0.1.lowercased().contains("screen") && !$0.1.lowercased().contains("border") }) ??
                            screenNodeCandidates.first(where: { $0.1.lowercased().contains("screen_border") }) ??
                            screenNodeCandidates.first {
@@ -101,7 +101,7 @@ class TextureManager {
             if let geometry = screenNode.0.geometry {
                 print("Screen node has \(geometry.materials.count) materials")
                 
-                // デバッグ: ジオメトリ情報の出力
+                // Debug: Output geometry information
                 print("=== Geometry Debug Info ===")
                 print("Geometry type: \(type(of: geometry))")
                 let sources = geometry.sources
@@ -110,37 +110,37 @@ class TextureManager {
                 }
                 print("===========================")
                 
-                // screenノードの場合、単一マテリアルであることが多いので全て置き換え
+                // If it is a screen node, it is often a single material, so replace all
                 if screenNode.1.lowercased().contains("screen") && geometry.materials.count == 1 {
-                    // 新しいマテリアルを作成してテクスチャを適用
+                    // Create a new material and apply the texture
                     let screenMaterial = SCNMaterial()
                     
-                    // テクスチャの品質設定
+                    // Texture quality settings
                     screenMaterial.diffuse.contents = optimizedImage
                     screenMaterial.diffuse.wrapS = .clamp
                     screenMaterial.diffuse.wrapT = .clamp
                     screenMaterial.diffuse.minificationFilter = .linear
                     screenMaterial.diffuse.magnificationFilter = .linear
                     
-                    // UV座標の正確な適用（画像は既に事前反転済み）
-                    // 水平反転を修正するためにcontentsTransformを調整
+                    // Accurate application of UV coordinates (the image is already pre-flipped)
+                    // Adjust contentsTransform to correct for horizontal flipping
                     let transform = SCNMatrix4MakeScale(-1, 1, 1)
                     screenMaterial.diffuse.contentsTransform = SCNMatrix4Translate(transform, 1, 0, 0)
                     
-                    // 画面の発光効果を追加（リアルな表示のため）
-                    // 一時的に発光効果を無効化してテスト
+                    // Add screen emission effect (for realistic display)
+                    // Temporarily disable emission effect for testing
                     // screenMaterial.emission.contents = optimizedImage
                     // screenMaterial.emission.intensity = 0.1
                     
-                    // スペキュラ反射の設定
+                    // Specular reflection settings
                     screenMaterial.specular.contents = UIColor.white
                     screenMaterial.shininess = 1.0
                     
-                    // 単一マテリアルの場合は全て置き換え
+                    // If it is a single material, replace all
                     geometry.materials = [screenMaterial]
                     print("Applied texture to single material screen node")
                     
-                    // デバッグ: マテリアル設定の確認
+                    // Debug: Check material settings
                     print("=== Material Debug Info ===")
                     print("diffuse.contents: \(screenMaterial.diffuse.contents != nil ? "Set" : "Not Set")")
                     print("emission.contents: \(screenMaterial.emission.contents != nil ? "Set" : "Not Set")")
@@ -151,11 +151,11 @@ class TextureManager {
                     }
                     print("==========================")
                 } else {
-                    // 複数マテリアルの場合は適切なインデックスを特定
+                    // If there are multiple materials, identify the appropriate index
                     var targetMaterialIndex = -1
                     
                     for (index, material) in geometry.materials.enumerated() {
-                        // マテリアルの名前から画面部分を推測
+                        // Infer the screen part from the material name
                         if let materialName = material.name?.lowercased() {
                             if materialName.contains("screen") || materialName.contains("display") || materialName.contains("lcd") {
                                 targetMaterialIndex = index
@@ -164,13 +164,13 @@ class TextureManager {
                             }
                         }
                         
-                        // 色による判定（黒っぽい色を画面として推測）
+                        // Judgment by color (infer a dark color as the screen)
                         if let diffuseColor = material.diffuse.contents as? UIColor {
                             var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
                             diffuseColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
                             let brightness = (red + green + blue) / 3.0
                             
-                            if brightness < 0.3 { // 暗い色（おそらく画面）
+                            if brightness < 0.3 { // Dark color (probably the screen)
                                 targetMaterialIndex = index
                                 print("Found dark material (likely screen) at index \(index): brightness=\(brightness)")
                                 break
@@ -178,54 +178,54 @@ class TextureManager {
                         }
                     }
                     
-                    // 特定のマテリアルが見つからない場合、最初のマテリアルを使用
+                    // If a specific material is not found, use the first material
                     if targetMaterialIndex == -1 && !geometry.materials.isEmpty {
                         targetMaterialIndex = 0
                         print("Using first material as screen (index \(targetMaterialIndex))")
                     }
                     
                     if targetMaterialIndex >= 0 {
-                        // 新しいマテリアルを作成してテクスチャを適用
+                        // Create a new material and apply the texture
                         let screenMaterial = SCNMaterial()
                         
-                        // テクスチャの品質設定
+                        // Texture quality settings
                         screenMaterial.diffuse.contents = optimizedImage
                         screenMaterial.diffuse.wrapS = .clamp
                         screenMaterial.diffuse.wrapT = .clamp
                         screenMaterial.diffuse.minificationFilter = .linear
                         screenMaterial.diffuse.magnificationFilter = .linear
                         
-                        // UV座標の正確な適用（画像は既に事前反転済み）
-                        // 水平反転を修正するためにcontentsTransformを調整
+                        // Accurate application of UV coordinates (the image is already pre-flipped)
+                        // Adjust contentsTransform to correct for horizontal flipping
                         let transform = SCNMatrix4MakeScale(-1, 1, 1)
                         screenMaterial.diffuse.contentsTransform = SCNMatrix4Translate(transform, 1, 0, 0)
                         
-                        // 画面の発光効果を追加（リアルな表示のため）
-                        // 一時的に発光効果を無効化してテスト
+                        // Add screen emission effect (for realistic display)
+                        // Temporarily disable emission effect for testing
                         // screenMaterial.emission.contents = optimizedImage
                         // screenMaterial.emission.intensity = 0.1
                         
-                        // スペキュラ反射の設定
+                        // Specular reflection settings
                         screenMaterial.specular.contents = UIColor.white
                         screenMaterial.shininess = 1.0
                         
-                        // 特定のマテリアルインデックスのみを置き換え
+                        // Replace only the specific material index
                         geometry.materials[targetMaterialIndex] = screenMaterial
                         print("Applied texture to material index \(targetMaterialIndex)")
                     }
                 }
             }
         } else if !screenNodeCandidates.isEmpty {
-            // スクリーン候補が見つからない場合、マテリアルベースで画面部分を特定
+            // If no screen candidates are found, identify the screen part based on the material
             let node = screenNodeCandidates.first!.0
             if let geometry = node.geometry {
                 print("Attempting material-based screen detection on '\(node.name ?? "unnamed")' with \(geometry.materials.count) materials")
                 
-                // 画面に適したマテリアルを探す（通常は黒や暗い色、または名前に"screen"を含む）
+                // Find a material suitable for the screen (usually black or dark, or with "screen" in the name)
                 var targetMaterialIndex = -1
                 
                 for (index, material) in geometry.materials.enumerated() {
-                    // マテリアルの色や名前から画面部分を推測
+                    // Infer the screen part from the material color or name
                     if let materialName = material.name?.lowercased() {
                         if materialName.contains("screen") || materialName.contains("display") || materialName.contains("lcd") {
                             targetMaterialIndex = index
@@ -234,13 +234,13 @@ class TextureManager {
                         }
                     }
                     
-                    // 色による判定（黒っぽい色を画面として推測）
+                    // Judgment by color (infer a dark color as the screen)
                     if let diffuseColor = material.diffuse.contents as? UIColor {
                         var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
                         diffuseColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
                         let brightness = (red + green + blue) / 3.0
                         
-                        if brightness < 0.3 { // 暗い色（おそらく画面）
+                        if brightness < 0.3 { // Dark color (probably the screen)
                             targetMaterialIndex = index
                             print("Found dark material (likely screen) at index \(index): brightness=\(brightness)")
                             break
@@ -248,38 +248,38 @@ class TextureManager {
                     }
                 }
                 
-                // 特定のマテリアルが見つからない場合、最後のマテリアル（通常画面部分）を使用
+                // If a specific material is not found, use the last material (usually the screen part)
                 if targetMaterialIndex == -1 && !geometry.materials.isEmpty {
                     targetMaterialIndex = geometry.materials.count - 1
                     print("Using last material as screen (index \(targetMaterialIndex))")
                 }
                 
                 if targetMaterialIndex >= 0 {
-                    // 新しいマテリアルを作成してテクスチャを適用
+                    // Create a new material and apply the texture
                     let screenMaterial = SCNMaterial()
                     
-                    // テクスチャの品質設定
+                    // Texture quality settings
                     screenMaterial.diffuse.contents = optimizedImage
                     screenMaterial.diffuse.wrapS = .clamp
                     screenMaterial.diffuse.wrapT = .clamp
                     screenMaterial.diffuse.minificationFilter = .linear
                     screenMaterial.diffuse.magnificationFilter = .linear
                     
-                    // UV座標の正確な適用
-                    // 水平反転を修正するためにcontentsTransformを調整
+                    // Accurate application of UV coordinates
+                    // Adjust contentsTransform to correct for horizontal flipping
                     let transform = SCNMatrix4MakeScale(-1, 1, 1)
                     screenMaterial.diffuse.contentsTransform = SCNMatrix4Translate(transform, 1, 0, 0)
                     
-                    // 画面の発光効果を追加（リアルな表示のため）
-                    // 一時的に発光効果を無効化してテスト
+                    // Add screen emission effect (for realistic display)
+                    // Temporarily disable emission effect for testing
                     // screenMaterial.emission.contents = optimizedImage
                     // screenMaterial.emission.intensity = 0.1
                     
-                    // スペキュラ反射の設定
+                    // Specular reflection settings
                     screenMaterial.specular.contents = UIColor.white
                     screenMaterial.shininess = 1.0
                     
-                    // 特定のマテリアルインデックスのみを置き換え
+                    // Replace only the specific material index
                     geometry.materials[targetMaterialIndex] = screenMaterial
                     screenFound = true
                     
@@ -288,7 +288,7 @@ class TextureManager {
             }
         }
         
-        // 画面ノードが見つからない場合の代替処理
+        // Alternative processing if no screen node is found
         if !screenFound {
             print("⚠️ Warning: No screen node found with geometry from candidates: \(screenNodeCandidates.map { $0.1 })")
             print("Available nodes with geometry:")
@@ -302,7 +302,7 @@ class TextureManager {
                 }
             }
             
-            // より大きなジオメトリ（おそらく画面）を探す
+            // Find a larger geometry (probably the screen)
             if let largestNode = geometryNodes.max(by: { (node1, node2) in
                 let bounds1 = node1.0.boundingBox
                 let bounds2 = node2.0.boundingBox
@@ -313,11 +313,11 @@ class TextureManager {
                 print("Applying texture to largest geometry node: '\(largestNode.1)' with \(largestNode.0.geometry?.materials.count ?? 0) materials")
                 
                 if let geometry = largestNode.0.geometry {
-                    // 最大ノードでも適切なマテリアルインデックスを特定
+                    // Identify the appropriate material index even for the largest node
                     var targetMaterialIndex = -1
                     
                     for (index, material) in geometry.materials.enumerated() {
-                        // マテリアルの名前から画面部分を推測
+                        // Infer the screen part from the material name
                         if let materialName = material.name?.lowercased() {
                             if materialName.contains("screen") || materialName.contains("display") || materialName.contains("lcd") {
                                 targetMaterialIndex = index
@@ -326,13 +326,13 @@ class TextureManager {
                             }
                         }
                         
-                        // 色による判定（黒っぽい色を画面として推測）
+                        // Judgment by color (infer a dark color as the screen)
                         if let diffuseColor = material.diffuse.contents as? UIColor {
                             var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
                             diffuseColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
                             let brightness = (red + green + blue) / 3.0
                             
-                            if brightness < 0.3 { // 暗い色（おそらく画面）
+                            if brightness < 0.3 { // Dark color (probably the screen)
                                 targetMaterialIndex = index
                                 print("Found dark material (likely screen) at index \(index): brightness=\(brightness)")
                                 break
@@ -340,7 +340,7 @@ class TextureManager {
                         }
                     }
                     
-                    // 特定のマテリアルが見つからない場合、最後のマテリアル（通常画面部分）を使用
+                    // If a specific material is not found, use the last material (usually the screen part)
                     if targetMaterialIndex == -1 && !geometry.materials.isEmpty {
                         targetMaterialIndex = geometry.materials.count - 1
                         print("Using last material as screen (index \(targetMaterialIndex))")
@@ -353,16 +353,16 @@ class TextureManager {
                         screenMaterial.diffuse.wrapT = .clamp
                         screenMaterial.diffuse.minificationFilter = .linear
                         screenMaterial.diffuse.magnificationFilter = .linear
-                        // 水平反転を修正するためにcontentsTransformを調整
+                        // Adjust contentsTransform to correct for horizontal flipping
                         let transform = SCNMatrix4MakeScale(-1, 1, 1)
                         screenMaterial.diffuse.contentsTransform = SCNMatrix4Translate(transform, 1, 0, 0)
-                        // 一時的に発光効果を無効化してテスト
+                        // Temporarily disable emission effect for testing
                         // screenMaterial.emission.contents = optimizedImage
                         // screenMaterial.emission.intensity = 0.05
                         screenMaterial.specular.contents = UIColor.white
                         screenMaterial.shininess = 1.0
                         
-                        // 特定のマテリアルインデックスのみを置き換え
+                        // Replace only the specific material index
                         geometry.materials[targetMaterialIndex] = screenMaterial
                         screenFound = true
                         print("Applied texture to material index \(targetMaterialIndex) of largest node")
@@ -371,7 +371,7 @@ class TextureManager {
             }
         }
         
-        // 画面ノードが見つからない場合はエラー
+        // Error if screen node is not found
         guard screenFound else {
             print("Warning: Screen node not found in model")
             return nil
@@ -381,11 +381,11 @@ class TextureManager {
         return workingScene
     }
     
-    // 画像テクスチャをクリアして元の状態に戻す
+    // Clear the image texture and return to the original state
     func clearTextureFromModel(_ model: SCNScene) -> SCNScene? {
         print("Clearing texture from existing scene")
         
-        // iPhoneモデルの画面部分を見つけて元の黒い画面に戻す
+        // Find the screen part of the iPhone model and return it to the original black screen
         var screenFound = false
         
         model.rootNode.enumerateChildNodes { (node, stop) in
@@ -393,7 +393,7 @@ class TextureManager {
             let hasGeometry = node.geometry != nil
             
             if hasGeometry, let geometry = node.geometry {
-                // 画面ノード候補を探す
+                // Find screen node candidates
                 let possibleScreenNames = ["screen", "Screen", "display", "Display", "LCD", "OLED", "Screen_Border", "Ellipse_2_Material"]
                 let isScreenNode = possibleScreenNames.contains { screenName in
                     nodeName.contains(screenName.lowercased())
@@ -402,7 +402,7 @@ class TextureManager {
                 if isScreenNode || (!screenFound && hasGeometry) {
                     print("Clearing texture from node: '\(node.name ?? "unnamed")'")
                     
-                    // 画面マテリアルを元の黒い画面に戻す
+                    // Return the screen material to the original black screen
                     for (index, _) in geometry.materials.enumerated() {
                         let screenMaterial = SCNMaterial()
                         screenMaterial.diffuse.contents = UIColor.black
@@ -422,10 +422,10 @@ class TextureManager {
     }
     
     private func optimizeImageForTexture(_ image: UIImage) -> UIImage {
-        // まず画像を上下反転
+        // First, flip the image vertically
         let flippedImage = flipImageVertically(image)
         
-        // テクスチャサイズを最適化（最大2048x2048）
+        // Optimize the texture size (max 2048x2048)
         let maxSize: CGFloat = 2048
         let currentSize = flippedImage.size
         
@@ -449,11 +449,11 @@ class TextureManager {
         
         let context = UIGraphicsGetCurrentContext()!
         
-        // 座標系を上下反転
+        // Flip the coordinate system vertically
         context.translateBy(x: 0, y: image.size.height)
         context.scaleBy(x: 1.0, y: -1.0)
         
-        // 画像を描画
+        // Draw the image
         image.draw(at: .zero)
         
         let flippedImage = UIGraphicsGetImageFromCurrentImageContext() ?? image
@@ -477,7 +477,7 @@ class TextureManager {
     }
     
     func getCacheInfo() -> (textureCount: Int, sceneCount: Int) {
-        // デバッグ用のキャッシュ情報取得
+        // Get cache information for debugging
         return (textureCache.totalCostLimit, sceneCache.totalCostLimit)
     }
     

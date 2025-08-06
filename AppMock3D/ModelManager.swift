@@ -125,7 +125,7 @@ class ModelManager {
         // Create iPhone body
         let phoneBody = SCNBox(width: 0.8, height: 1.6, length: 0.08, chamferRadius: 0.08)
         let bodyMaterial = SCNMaterial()
-        bodyMaterial.diffuse.contents = UIColor(red: 0.3, green: 0.3, blue: 0.3, alpha: 1.0) // ダークグレー
+        bodyMaterial.diffuse.contents = UIColor(red: 0.3, green: 0.3, blue: 0.3, alpha: 1.0) // Dark gray
         bodyMaterial.specular.contents = UIColor.white
         bodyMaterial.shininess = 0.8
         phoneBody.materials = [bodyMaterial]
@@ -137,14 +137,14 @@ class ModelManager {
         // Create screen (this is where images will be applied)
         let screen = SCNBox(width: 0.65, height: 1.35, length: 0.001, chamferRadius: 0.02)
         let screenMaterial = SCNMaterial()
-        screenMaterial.diffuse.contents = UIColor.black // デフォルトは黒い画面
+        screenMaterial.diffuse.contents = UIColor.black // Default is a black screen
         screenMaterial.specular.contents = UIColor.white
         screenMaterial.shininess = 1.0
         screen.materials = [screenMaterial]
         
         let screenNode = SCNNode(geometry: screen)
-        screenNode.name = "screen" // 確実にscreen名を設定
-        screenNode.position = SCNVector3(x: 0, y: 0, z: 0.041) // 本体の前面に配置
+        screenNode.name = "screen" // Ensure the screen name is set
+        screenNode.position = SCNVector3(x: 0, y: 0, z: 0.041) // Position in front of the body
         phoneBodyNode.addChildNode(screenNode)
         
         print("Created placeholder model with screen node: \(screenNode.name ?? "unnamed")")

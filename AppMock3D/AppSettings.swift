@@ -34,14 +34,14 @@ struct AppSettings: Codable, Equatable {
     }
     
     enum BackgroundColorSetting: String, CaseIterable, Codable {
-        case solidColor = "単色"
-        case transparent = "透明"
-        case gradient = "グラデーション"
+        case solidColor = "Solid Color"
+        case transparent = "Transparent"
+        case gradient = "Gradient"
     }
     
     enum GradientType: String, CaseIterable, Codable {
-        case linear = "線形"
-        case radial = "放射状"
+        case linear = "Linear"
+        case radial = "Radial"
     }
     
     enum DeviceModel: String, CaseIterable, Codable {

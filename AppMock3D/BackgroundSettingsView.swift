@@ -9,7 +9,7 @@ struct BackgroundSettingsView: View {
     var body: some View {
         VStack(spacing: 20) {
             HStack {
-                Text("背景設定")
+                Text("Background Settings")
                     .font(.title2)
                     .fontWeight(.bold)
                 Spacer()
@@ -18,10 +18,10 @@ struct BackgroundSettingsView: View {
             
             // Background type selection
             VStack(alignment: .leading, spacing: 10) {
-                Text("背景タイプ")
+                Text("Background Type")
                     .font(.headline)
                 
-                Picker("背景タイプ", selection: $settings.backgroundColor) {
+                Picker("Background Type", selection: $settings.backgroundColor) {
                     ForEach(AppSettings.BackgroundColorSetting.allCases, id: \.rawValue) { type in
                         Text(type.rawValue).tag(type)
                     }
@@ -33,7 +33,7 @@ struct BackgroundSettingsView: View {
             if settings.backgroundColor == .solidColor {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
-                        Text("単色設定")
+                        Text("Solid Color Settings")
                             .font(.headline)
                         Spacer()
                         Rectangle()
@@ -52,7 +52,7 @@ struct BackgroundSettingsView: View {
                     }
                     
                     if isColorPickerVisible {
-                        ColorPicker("背景色", selection: Binding(get: {
+                        ColorPicker("Background Color", selection: Binding(get: {
                             Color(hex: settings.solidColorValue) ?? Color.white
                         }, set: { color in
                             settings.solidColorValue = color.toHex()
@@ -65,10 +65,10 @@ struct BackgroundSettingsView: View {
             // Gradient settings
             if settings.backgroundColor == .gradient {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("グラデーションタイプ")
+                    Text("Gradient Type")
                         .font(.headline)
                     
-                    Picker("グラデーション", selection: $settings.gradientType) {
+                    Picker("Gradient", selection: $settings.gradientType) {
                         ForEach(AppSettings.GradientType.allCases, id: \.rawValue) { type in
                             Text(type.rawValue).tag(type)
                         }
@@ -79,11 +79,11 @@ struct BackgroundSettingsView: View {
             
             // Environment lighting
             VStack(alignment: .leading, spacing: 10) {
-                Text("環境ライティング")
+                Text("Environment Lighting")
                     .font(.headline)
                 
                 HStack {
-                    Text("強度: \(String(format: "%.1f", settings.environmentLightingIntensity))")
+                    Text("Intensity: \(String(format: "%.1f", settings.environmentLightingIntensity))")
                     Spacer()
                 }
                 
@@ -98,7 +98,7 @@ struct BackgroundSettingsView: View {
             
             // Action buttons
             HStack {
-                Button("キャンセル") {
+                Button("Cancel") {
                     isPresented = false
                 }
                 .padding()
@@ -106,7 +106,7 @@ struct BackgroundSettingsView: View {
                 .background(Color(.systemGray5))
                 .cornerRadius(8)
                 
-                Button("適用") {
+                Button("Apply") {
                     settings.save()
                     isPresented = false
                 }

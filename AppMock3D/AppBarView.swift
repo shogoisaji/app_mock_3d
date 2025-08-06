@@ -9,12 +9,12 @@ struct AppBarView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        // 右寄せ・必要幅のみの AppBar
+        // Right-aligned AppBar with minimum necessary width
         HStack {
             Spacer(minLength: 0)
 
             ZStack {
-                // 背景: 超薄ブラー + 上部グラデーション（右寄せ塊のみに適用）
+                // Background: Ultra thin blur + top gradient (applied only to the right-aligned block)
                 BlurView(style: .systemUltraThinMaterial)
                     .overlay(
                         LinearGradient(
@@ -24,7 +24,7 @@ struct AppBarView: View {
                         ).opacity(0.35)
                     )
                     .overlay(
-                        // 内側ストローク
+                        // Inner stroke
                         RoundedRectangle(cornerRadius: 20)
                             .strokeBorder(borderColor, lineWidth: 0.6)
                             .padding(.horizontal, 8)
@@ -33,23 +33,23 @@ struct AppBarView: View {
                     )
 
                 HStack(spacing: 12) {
-                    // 設定
+                    // Settings
                     PillIconButton(symbol: "gearshape", action: onSettings, accessibilityId: "gear")
                     
-                    // 写真選択
+                    // Select Photo
                     PillIconButton(symbol: "photo", action: onImageSelect, accessibilityId: "imageSelect")
                     
-                    // 保存
+                    // Save
                     PillIconButton(symbol: "square.and.arrow.down", action: onSave, accessibilityId: "save")
                 }
                 .padding(.horizontal, 16)
             }
             .frame(height: 60)
-            .fixedSize(horizontal: true, vertical: false) // 必要な幅のみ
+            .fixedSize(horizontal: true, vertical: false) // Minimum necessary width
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             .shadow(color: shadowColor, radius: 12, x: 0, y: 6)
         }
-        .padding(.horizontal, 12) // 画面端との余白
+        .padding(.horizontal, 12) // Padding from screen edge
         .padding(.top, 6)
         .accessibilityIdentifier("AppBar")
     }
@@ -79,7 +79,7 @@ struct AppBarView: View {
     }
 }
 
-// モダンな丸角アイコンボタン
+// Modern rounded icon button
 private struct PillIconButton: View {
     var symbol: String
     var action: () -> Void
@@ -127,7 +127,7 @@ private struct PillIconButton: View {
     }
 }
 
-// UIKit ブラーの SwiftUI ラッパー
+// SwiftUI wrapper for UIKit blur
 private struct BlurView: UIViewRepresentable {
     let style: UIBlurEffect.Style
     func makeUIView(context: Context) -> UIVisualEffectView {

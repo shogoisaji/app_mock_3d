@@ -4,7 +4,7 @@ struct BottomAppBarView: View {
     var onGridToggle: () -> Void
     var onLightingAdjust: () -> Void
     var onResetTransform: () -> Void
-    // 追加: 現在のライティング番号(1~4)を表示するために受け取る
+    // Added to display the current lighting number (1-4)
     var lightingNumber: Int = 1
     
     @Environment(\.colorScheme) private var colorScheme
@@ -31,13 +31,13 @@ struct BottomAppBarView: View {
                     )
                 
                 HStack(spacing: 12) {
-                    // グリッドの補助線表示切り替え
+                    // Toggle grid helper lines
                     PillIconButton(symbol: "grid", action: onGridToggle, accessibilityId: "gridToggle")
                     
-                    // ライティング調整（番号バッジつき）
+                    // Adjust lighting (with number badge)
                     ZStack(alignment: .bottomTrailing) {
                         PillIconButton(symbol: "lightbulb", action: onLightingAdjust, accessibilityId: "lightingAdjust")
-                        // バッジ
+                        // Badge
                         Text("\(max(1, min(10, lightingNumber)))")
                             .font(.system(size: 11, weight: .bold))
                             .foregroundColor(.black)
@@ -51,7 +51,7 @@ struct BottomAppBarView: View {
                             .accessibilityHidden(true)
                     }
                     
-                    // 配置リセット
+                    // Reset placement
                     PillIconButton(symbol: "arrow.counterclockwise", action: onResetTransform, accessibilityId: "resetTransform")
                 }
                 .padding(.horizontal, 16)

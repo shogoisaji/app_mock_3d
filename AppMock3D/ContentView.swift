@@ -16,7 +16,7 @@ struct ContentView: View {
     @StateObject private var photoPermissionManager = PhotoPermissionManager()
     @StateObject private var photoSaveManager = PhotoSaveManager()
     @State private var sceneView: SCNScene?
-    // 追加: エクスポート用に最新シーンを保持
+    // Added: Hold the latest scene for export
     @State private var latestSceneForExport: SCNScene?
     @State private var showingImagePicker = false
     @State private var showingPermissionAlert = false
@@ -24,73 +24,67 @@ struct ContentView: View {
     @State private var showSaveSuccessAlert = false
     @State private var showSaveErrorAlert = false
     @State private var showingExportView = false
-    // 追加: プレビューのカメラ行列を保持
+    // Added: Hold the camera matrix of the preview
     @State private var latestCameraTransform: SCNMatrix4?
-    // 追加: プレビューのスナップショット画像を保持
+    // Added: Hold the snapshot image of the preview
     @State private var currentPreviewSnapshot: UIImage?
-    // 追加: スナップショット要求のトリガー
+    // Added: Trigger for snapshot request
     @State private var shouldTakeSnapshot = false
     
     var body: some View {
-        MainView(
-            appState: appState,
-            imagePickerManager: imagePickerManager,
-            sceneView: $sceneView,
-            latestSceneForExport: $latestSceneForExport,
-            latestCameraTransform: $latestCameraTransform,
-            currentPreviewSnapshot: $currentPreviewSnapshot,
-            shouldTakeSnapshot: $shouldTakeSnapshot,
-            showingExportView: $showingExportView,
-            isSaving: $isSaving,
-            handleImageButtonPressed: handleImageButtonPressed
-        )
-        .tint(Color(hex: "#E99370") ?? .orange) // アクセントカラー
-        .onAppear {
-            loadModel()
-        }
-        .photosPicker(
-            isPresented: $showingImagePicker,
-            selection: $imagePickerManager.selectedItem,
-            matching: .images,
-            photoLibrary: .shared()
-        )
-        .onChange(of: imagePickerManager.selectedItem) { _, _ in
-            imagePickerManager.loadImage()
-        }
-        .sheet(isPresented: $appState.isSettingsPresented) {
-            NavigationView {
-                SettingsView(appState: appState)
-                    .navigationTitle("設定")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            Button("完了") {
-                                appState.isSettingsPresented = false
-                            }
-                        }
-                    }
+        ZStack {
+            MainView(
+                appState: appState,
+                imagePickerManager: imagePickerManager,
+                sceneView: $sceneView,
+                latestSceneForExport: $latestSceneForExport,
+                latestCameraTransform: $latestCameraTransform,
+                currentPreviewSnapshot: $currentPreviewSnapshot,
+                shouldTakeSnapshot: $shouldTakeSnapshot,
+                showingExportView: $showingExportView,
+                isSaving: $isSaving,
+                handleImageButtonPressed: handleImageButtonPressed
+            )
+            .tint(Color(hex: "#E99370") ?? .orange) // Accent color
+            .onAppear {
+                loadModel()
             }
+            .photosPicker(
+                isPresented: $showingImagePicker,
+                selection: $imagePickerManager.selectedItem,
+                matching: .images,
+                photoLibrary: .shared()
+            )
+            .onChange(of: imagePickerManager.selectedItem) { _, _ in
+                imagePickerManager.loadImage()
+            }
+            
+            BottomSheetManager(
+                isOpen: $appState.isSettingsPresented,
+                content: SettingsView(appState: appState)
+            )
+            .animation(.easeInOut(duration: appState.isSettingsPresented ? 0.5 : 0.3), value: appState.isSettingsPresented)
         }
-        .alert("保存完了", isPresented: $showSaveSuccessAlert) {
+        .alert("Save Complete", isPresented: $showSaveSuccessAlert) {
             Button("OK") { }
         } message: {
-            Text("画像をフォトライブラリに保存しました。")
+            Text("The image has been saved to your photo library.")
         }
-        .alert("保存エラー", isPresented: $showSaveErrorAlert) {
+        .alert("Save Error", isPresented: $showSaveErrorAlert) {
             Button("OK") { }
         } message: {
-            Text("画像の保存に失敗しました。")
+            Text("Failed to save the image.")
         }
-        .alert("写真へのアクセス許可", isPresented: $showingPermissionAlert) {
-            Button("設定を開く") {
+        .alert("Photo Library Access", isPresented: $showingPermissionAlert) {
+            Button("Open Settings") {
                 openAppSettings()
             }
-            Button("キャンセル", role: .cancel) { }
+            Button("Cancel", role: .cancel) { }
         } message: {
-            Text("画像を選択するには、写真ライブラリへのアクセスを許可してください。設定アプリで「AppMock3D」のアクセス権限を変更できます。")
+            Text("To select an image, please allow access to your photo library. You can change permissions in the Settings app for \"AppMock3D\".")
         }
         .sheet(isPresented: $showingExportView) {
-            // スナップショット画像がある場合はそれを使用
+            // Use the snapshot image if it exists
             if let snapshot = currentPreviewSnapshot {
                 ExportView(renderingEngine: nil,
                            photoSaveManager: PhotoSaveManager(),
@@ -98,7 +92,7 @@ struct ContentView: View {
                            aspectRatio: appState.aspectRatio,
                            previewSnapshot: snapshot)
             } else if let exportScene = latestSceneForExport ?? sceneView {
-                // フォールバック: RenderingEngineを使用
+                // Fallback: Use RenderingEngine
                 let renderingEngine = RenderingEngine(scene: exportScene)
                 ExportView(renderingEngine: renderingEngine,
                            photoSaveManager: PhotoSaveManager(),
@@ -106,7 +100,7 @@ struct ContentView: View {
                            aspectRatio: appState.aspectRatio,
                            previewSnapshot: nil)
             } else {
-                // 最後の手段: 新しいシーンを作成してエクスポート
+                // Last resort: Create a new scene and export
                 let fallbackScene = ModelManager.shared.loadModel(named: "iphone14pro") ?? SCNScene()
                 let renderingEngine = RenderingEngine(scene: fallbackScene)
                 ExportView(renderingEngine: renderingEngine,
@@ -116,16 +110,16 @@ struct ContentView: View {
                            previewSnapshot: nil)
             }
         }
-        .alert("権限が必要です", isPresented: $showingPermissionAlert) {
-            Button("設定を開く") {
-                // 設定アプリを開く
+        .alert("Permission Required", isPresented: $showingPermissionAlert) {
+            Button("Open Settings") {
+                // Open the settings app
                 if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
                     UIApplication.shared.open(settingsURL)
                 }
             }
-            Button("キャンセル", role: .cancel) { }
+            Button("Cancel", role: .cancel) { }
         } message: {
-            Text("画像を選択するには、写真ライブラリへのアクセスを許可してください。設定アプリで「AppMock3D」のアクセス権限を変更できます。")
+            Text("To select an image, please allow access to your photo library. You can change permissions in the Settings app for \"AppMock3D\".")
         }
     }
     
@@ -134,24 +128,24 @@ struct ContentView: View {
         let model = ModelManager.shared.loadModel(named: "iphone14pro")
         
         if model == nil {
-            appState.setImageError("3Dモデルの読み込みに失敗しました。アプリを再起動してください。")
+            appState.setImageError("Failed to load 3D model. Please restart the app.")
         } else {
             sceneView = model
-            // 初期ロード時点のシーンをエクスポート用にセット
+            // Set the scene at initial load for export
             latestSceneForExport = model
         }
     }
     
     private func handleImageButtonPressed() {
-        // 権限をチェック
+        // Check for permissions
         photoPermissionManager.checkAuthorizationStatus()
         
         switch photoPermissionManager.authorizationStatus {
         case .authorized:
-            // 権限がある場合は直接PhotosPickerを表示
+            // If authorized, show PhotosPicker directly
             showingImagePicker = true
         case .notDetermined:
-            // 初回の場合は権限を要求
+            // If first time, request permission
             Task {
                 let status = await photoPermissionManager.requestPermission()
                 DispatchQueue.main.async {
@@ -163,10 +157,10 @@ struct ContentView: View {
                 }
             }
         case .denied, .restricted:
-            // 拒否されている場合はアラートを表示
+            // If denied, show an alert
             showingPermissionAlert = true
         case .limited:
-            // 制限付きアクセスでも画像選択は可能
+            // Image selection is possible even with limited access
             showingImagePicker = true
         @unknown default:
             showingPermissionAlert = true

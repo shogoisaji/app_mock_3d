@@ -7,7 +7,7 @@ struct DeviceSelectionView: View {
     var body: some View {
         VStack(spacing: 20) {
             HStack {
-                Text("端末モデル選択")
+                Text("Select Device Model")
                     .font(.title2)
                     .fontWeight(.bold)
                 Spacer()
@@ -16,10 +16,10 @@ struct DeviceSelectionView: View {
             
             // Device model selection
             VStack(alignment: .leading, spacing: 10) {
-                Text("端末モデル")
+                Text("Device Model")
                     .font(.headline)
                 
-                Picker("端末モデル", selection: $settings.currentDeviceModel) {
+                Picker("Device Model", selection: $settings.currentDeviceModel) {
                     ForEach(AppSettings.DeviceModel.allCases, id: \.rawValue) { model in
                         Text(model.rawValue).tag(model)
                     }
@@ -30,11 +30,11 @@ struct DeviceSelectionView: View {
             
             // Device preview information
             VStack(alignment: .leading, spacing: 10) {
-                Text("モデル情報")
+                Text("Model Information")
                     .font(.headline)
                 
                 HStack {
-                    Text("選択中のモデル:")
+                    Text("Selected Model:")
                     Spacer()
                     Text(settings.currentDeviceModel.rawValue)
                         .fontWeight(.bold)
@@ -48,7 +48,7 @@ struct DeviceSelectionView: View {
             
             // Action buttons
             HStack {
-                Button("キャンセル") {
+                Button("Cancel") {
                     isPresented = false
                 }
                 .padding()
@@ -56,7 +56,7 @@ struct DeviceSelectionView: View {
                 .background(Color(.systemGray5))
                 .cornerRadius(8)
                 
-                Button("適用") {
+                Button("Apply") {
                     settings.save()
                     isPresented = false
                 }

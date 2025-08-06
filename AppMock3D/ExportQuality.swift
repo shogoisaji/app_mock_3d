@@ -1,10 +1,10 @@
 import Foundation
 
 enum ExportQuality: String, CaseIterable, Codable {
-    case low = "低品質"
-    case medium = "中品質"
-    case high = "高品質"
-    case highest = "最高品質"
+    case low = "Low"
+    case medium = "Medium"
+    case high = "High"
+    case highest = "Highest"
     
     var resolution: CGSize {
         switch self {

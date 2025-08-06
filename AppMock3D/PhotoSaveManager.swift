@@ -14,13 +14,13 @@ class PhotoSaveManager: ObservableObject {
                         completion(success, error)
                     }
                 case .denied, .restricted:
-                    completion(false, NSError(domain: "PhotoSaveManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "写真ライブラリへのアクセスが拒否されました"]))
+                    completion(false, NSError(domain: "PhotoSaveManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Access to the photo library was denied."]))
                 case .notDetermined:
-                    completion(false, NSError(domain: "PhotoSaveManager", code: 2, userInfo: [NSLocalizedDescriptionKey: "写真ライブラリへのアクセスがまだ許可されていません"]))
+                    completion(false, NSError(domain: "PhotoSaveManager", code: 2, userInfo: [NSLocalizedDescriptionKey: "Access to the photo library has not yet been granted."]))
                 case .limited:
-                    completion(false, NSError(domain: "PhotoSaveManager", code: 3, userInfo: [NSLocalizedDescriptionKey: "限定的な写真ライブラリへのアクセスが許可されています"]))
+                    completion(false, NSError(domain: "PhotoSaveManager", code: 3, userInfo: [NSLocalizedDescriptionKey: "Limited access to the photo library is permitted."]))
                 @unknown default:
-                    completion(false, NSError(domain: "PhotoSaveManager", code: 4, userInfo: [NSLocalizedDescriptionKey: "不明なアクセス許可ステータス"]))
+                    completion(false, NSError(domain: "PhotoSaveManager", code: 4, userInfo: [NSLocalizedDescriptionKey: "Unknown authorization status."]))
                 }
             }
         }

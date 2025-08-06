@@ -9,10 +9,10 @@ struct ImagePickerView: View {
         VStack(spacing: 20) {
             if permissionManager.isAuthorized() {
                 VStack(spacing: 16) {
-                    // 現在選択されている画像を表示
+                    // Display the currently selected image
                     if let selectedImage = imagePickerManager.selectedImage {
                         VStack(spacing: 12) {
-                            Text("選択中の画像")
+                            Text("Selected Image")
                                 .font(.headline)
                             
                             Image(uiImage: selectedImage)
@@ -28,13 +28,13 @@ struct ImagePickerView: View {
                                 .font(.system(size: 80))
                                 .foregroundColor(.gray)
                             
-                            Text("画像が選択されていません")
+                            Text("No image selected")
                                 .font(.headline)
                                 .foregroundColor(.gray)
                         }
                     }
                     
-                    // 画像選択ボタン
+                    // Image selection button
                     PhotosPicker(
                         selection: $imagePickerManager.selectedItem,
                         matching: .images,
@@ -42,7 +42,7 @@ struct ImagePickerView: View {
                     ) {
                         HStack {
                             Image(systemName: "photo.on.rectangle")
-                            Text(imagePickerManager.selectedImage == nil ? "画像を選択" : "別の画像を選択")
+                            Text(imagePickerManager.selectedImage == nil ? "Select Image" : "Select Another Image")
                         }
                         .foregroundColor(.white)
                         .padding()
@@ -53,14 +53,14 @@ struct ImagePickerView: View {
                         imagePickerManager.loadImage()
                     }
                     
-                    // 画像をクリアするボタン
+                    // Button to clear the image
                     if imagePickerManager.selectedImage != nil {
                         Button(action: {
                             imagePickerManager.clearImage()
                         }) {
                             HStack {
                                 Image(systemName: "trash")
-                                Text("画像をクリア")
+                                Text("Clear Image")
                             }
                             .foregroundColor(.red)
                             .padding()
@@ -75,20 +75,20 @@ struct ImagePickerView: View {
                         .font(.system(size: 60))
                         .foregroundColor(.orange)
                     
-                    Text("写真ライブラリへのアクセス権限が必要です")
+                    Text("Photo Library access is required")
                         .font(.headline)
                         .multilineTextAlignment(.center)
                     
-                    Text("画像を選択するために、写真ライブラリへのアクセスを許可してください。")
+                    Text("To select an image, please allow access to your photo library.")
                         .font(.subheadline)
                         .foregroundColor(.gray)
                         .multilineTextAlignment(.center)
                     
-                    Button("アクセスを許可") {
+                    Button("Allow Access") {
                         Task {
                             let status = await permissionManager.requestPermission()
                             if status != .authorized {
-                                print("写真ライブラリへのアクセスが拒否されました")
+                                print("Photo Library access was denied")
                             }
                         }
                     }

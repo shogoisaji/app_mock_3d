@@ -7,27 +7,27 @@ struct ExportView: View {
     @State private var exportProgress: Double = 0.0
     @State private var showAlert: Bool = false
     @State private var alertMessage: String = ""
-    // 追加: プレビュー画像と読み込み状態
+    // Added: Preview image and loading state
     @State private var previewImage: UIImage?
     @State private var isLoadingPreview: Bool = true
-    // 追加: プレビュー生成の再試行回数を追跡
+    // Added: Track retry count for preview generation
     @State private var previewRetryCount: Int = 0
-    // 追加: 現在のカメラトランスフォームをローカルで保持
+    // Added: Hold the current camera transform locally
     @State private var currentCameraTransform: SCNMatrix4?
-    // 追加: カメラトランスフォームの変更を検出するためのハッシュ値
+    // Added: Hash value to detect changes in camera transform
     @State private var cameraTransformHash: Int = 0
 
-    // 追加: 呼び出し元から受け取る依存
+    // Added: Dependencies received from the caller
     var renderingEngine: RenderingEngine?
     var photoSaveManager: PhotoSaveManager
-    // 追加: プレビューの最新カメラ姿勢（Bindingで受け取る）
+    // Added: Latest camera posture of the preview (received as a Binding)
     @Binding var cameraTransform: SCNMatrix4?
-    // 追加: プレビューのアスペクト比
+    // Added: Aspect ratio of the preview
     var aspectRatio: Double = 1.0
-    // 追加: プレビューのスナップショット画像
+    // Added: Snapshot image of the preview
     var previewSnapshot: UIImage? = nil
     
-    // 初期化メソッドを追加してBindingを適切に扱う
+    // Added an initializer to handle the Binding properly
     init(renderingEngine: RenderingEngine?, 
          photoSaveManager: PhotoSaveManager, 
          cameraTransform: Binding<SCNMatrix4?>, 
@@ -42,11 +42,11 @@ struct ExportView: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            Text("エクスポート設定")
+            Text("Export Settings")
                 .font(.title)
                 .padding()
 
-            // MARK: - プレビュー表示エリア
+            // MARK: - Preview Display Area
             if isLoadingPreview {
                 ProgressView()
                     .frame(height: 200)
@@ -60,11 +60,11 @@ struct ExportView: View {
                     .padding(.horizontal)
                     .accessibilityIdentifier("ExportPreviewImage")
             } else {
-                Text("プレビューを生成できませんでした")
+                Text("Could not generate preview")
                     .frame(height: 200)
             }
             
-            Picker("品質設定", selection: $selectedQuality) {
+            Picker("Quality Settings", selection: $selectedQuality) {
                 ForEach(ExportQuality.allCases, id: \.self) { quality in
                     Text(quality.displayName).tag(quality)
                 }
@@ -75,7 +75,7 @@ struct ExportView: View {
             Button(action: {
                 exportImage()
             }) {
-                Text("画像をエクスポート")
+                Text("Export Image")
                     .padding()
                     .frame(maxWidth: .infinity)
                     .background(Color.blue)
@@ -86,7 +86,7 @@ struct ExportView: View {
             .disabled(isExporting)
             
             if isExporting {
-                ProgressView("エクスポート中...", value: exportProgress, total: 1.0)
+                ProgressView("Exporting...", value: exportProgress, total: 1.0)
                     .progressViewStyle(LinearProgressViewStyle())
                     .padding()
             }
@@ -99,62 +99,62 @@ struct ExportView: View {
             generatePreview()
         }
         .onChange(of: hashMatrix(cameraTransform)) { _, newHash in
-            // カメラトランスフォームが変更された場合、プレビューを再生成
+            // If the camera transform has changed, regenerate the preview
             if newHash != cameraTransformHash {
                 cameraTransformHash = newHash
                 currentCameraTransform = cameraTransform
-                previewRetryCount = 0 // 再試行カウンターをリセット
+                previewRetryCount = 0 // Reset the retry counter
                 generatePreview()
             }
         }
         .alert(isPresented: $showAlert) {
-            Alert(title: Text("エクスポート結果"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
+            Alert(title: Text("Export Result"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
         }
     }
 
-    // MARK: - プレビュー生成
+    // MARK: - Preview Generation
     private func generatePreview() {
         isLoadingPreview = true
         
-        // スナップショット画像がある場合はそれを使用
+        // Use the snapshot image if it exists
         if let snapshot = previewSnapshot {
             previewImage = snapshot
             isLoadingPreview = false
         } else if let engine = renderingEngine {
-            // カメラトランスフォームが無効またはデフォルト値の場合、再試行
+            // If the camera transform is invalid or at its default value, retry
             if shouldRetryPreviewGeneration() && previewRetryCount < 3 {
                 previewRetryCount += 1
-                let delay = Double(previewRetryCount) * 0.1 // 0.1秒, 0.2秒, 0.3秒と徐々に遅延
+                let delay = Double(previewRetryCount) * 0.1 // Gradually increase delay: 0.1s, 0.2s, 0.3s
                 DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                    self.generatePreview() // 再帰的に再試行
+                    self.generatePreview() // Recursively retry
                 }
             } else {
                 generatePreviewWithEngine(engine)
             }
         } else {
-            // どちらも利用できない場合
+            // If neither is available
             previewImage = nil
             isLoadingPreview = false
         }
     }
     
-    // カメラトランスフォームが無効またはデフォルト値かチェック
+    // Check if the camera transform is invalid or at its default value
     private func shouldRetryPreviewGeneration() -> Bool {
         let transform = currentCameraTransform ?? cameraTransform
         guard let transform = transform else {
-            return true // transformがnilの場合は再試行
+            return true // Retry if transform is nil
         }
         
-        // デフォルト値（単位行列やz=5の初期位置）をチェック
+        // Check for default values (identity matrix or initial position at z=5)
         let isIdentityMatrix = SCNMatrix4EqualToMatrix4(transform, SCNMatrix4Identity)
         let isDefaultPosition = (transform.m41 == 0 && transform.m42 == 0 && transform.m43 == 5)
         
         return isIdentityMatrix || isDefaultPosition
     }
     
-    // RenderingEngineでプレビューを生成
+    // Generate preview with RenderingEngine
     private func generatePreviewWithEngine(_ engine: RenderingEngine) {
-        // 最新のカメラトランスフォームを使用
+        // Use the latest camera transform
         let transformToUse = currentCameraTransform ?? cameraTransform
         engine.renderImage(
             withQuality: .low, 
@@ -170,11 +170,11 @@ struct ExportView: View {
         isExporting = true
         exportProgress = 0.0
         
-        // スナップショット画像がある場合はそれを保存
+        // Save the snapshot image if it exists
         if let snapshot = previewSnapshot {
             saveImageToPhotoLibrary(snapshot)
         } else if let engine = renderingEngine {
-            // RenderingEngine を使って画像を生成（フォールバック）
+            // Generate the image using RenderingEngine (fallback)
             let transformToUse = currentCameraTransform ?? cameraTransform
             engine.renderImage(
                 withQuality: selectedQuality, 
@@ -183,16 +183,16 @@ struct ExportView: View {
             ) { image in
                 guard let image = image else {
                     self.isExporting = false
-                    self.alertMessage = "画像のエクスポートに失敗しました。"
+                    self.alertMessage = "Failed to export image."
                     self.showAlert = true
                     return
                 }
                 self.saveImageToPhotoLibrary(image)
             }
         } else {
-            // どちらも利用できない場合
+            // If neither is available
             isExporting = false
-            alertMessage = "エクスポートに必要な画像データが見つかりません。"
+            alertMessage = "Could not find the image data needed for export."
             showAlert = true
         }
     }
@@ -201,9 +201,9 @@ struct ExportView: View {
         photoSaveManager.saveImageToPhotoLibrary(image) { success, error in
             self.isExporting = false
             if success {
-                self.alertMessage = "画像が写真ライブラリに保存されました。"
+                self.alertMessage = "Image saved to photo library."
             } else {
-                self.alertMessage = "画像の保存に失敗しました: \(error?.localizedDescription ?? "不明なエラー")"
+                self.alertMessage = "Failed to save image: \(error?.localizedDescription ?? "Unknown error")"
             }
             self.showAlert = true
         }
@@ -231,7 +231,7 @@ struct ExportView: View {
     
     private func cancelExport() {
         isExporting = false
-        alertMessage = "エクスポートがキャンセルされました"
+        alertMessage = "Export was cancelled"
         showAlert = true
     }
     
