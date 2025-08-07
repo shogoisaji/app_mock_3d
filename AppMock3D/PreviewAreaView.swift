@@ -67,17 +67,17 @@ struct PreviewAreaView: View {
     }
     
     private func animateNodeAppearance(_ node: SCNNode) {
-        // Set initial state (scale: 0.1, rotation: -90 degrees)
+        // Set initial state (scale: 0.3, rotation: Y = pi - 90 degrees)
         node.scale = SCNVector3(0.3, 0.3, 0.3)
-        node.eulerAngles = SCNVector3(0, -Float.pi/2, 0) // -90 degree rotation
+        node.eulerAngles = SCNVector3(0, Float.pi - Float.pi/2, 0) // start at 90° towards the final pi orientation
         
-        // Animate over 1 second (scale: 1.0, rotation: 0 degrees)
+        // Animate over 1 second (scale: 1.0, rotation: Y = pi)
         SCNTransaction.begin()
         SCNTransaction.animationDuration = 1.0
         SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeOut)
         
         node.scale = SCNVector3(1.0, 1.0, 1.0)
-        node.eulerAngles = SCNVector3(0, 0, 0)
+        node.eulerAngles = SCNVector3(0, Float.pi, 0)
         
         SCNTransaction.commit()
     }
@@ -497,7 +497,8 @@ extension PreviewAreaView {
                     SCNTransaction.begin()
                     SCNTransaction.animationDuration = 0.3
                     node.position = SCNVector3(0, 0, 0)
-                    node.eulerAngles = SCNVector3(0, 0, 0)  
+                    // Reset to baseline facing: Y = pi (180°)
+                    node.eulerAngles = SCNVector3(0, Float.pi, 0)  
                     node.scale = SCNVector3(1, 1, 1)
                     SCNTransaction.commit()
                 }
@@ -895,7 +896,12 @@ extension PreviewAreaView {
         
         SCNTransaction.begin()
         root.position = appState.objectPosition
-        root.eulerAngles = appState.objectEulerAngles
+        // Apply baseline Y=pi so the model faces forward initially, while keeping appState at 0-based rotation
+        root.eulerAngles = SCNVector3(
+            appState.objectEulerAngles.x,
+            appState.objectEulerAngles.y + Float.pi,
+            appState.objectEulerAngles.z
+        )
         root.scale = appState.objectScale
         SCNTransaction.commit()
         
@@ -1132,7 +1138,8 @@ private struct SnapshotHostingView: UIViewRepresentable {
             if gesture.state == .changed {
                 switch gesture.numberOfTouches {
                 case 1: // 1 finger: rotation
-                    let rotationX = Float(translation.y) * 0.01
+                    // Invert vertical rotation direction
+                    let rotationX = -Float(translation.y) * 0.01
                     let rotationY = Float(translation.x) * 0.01
                     
                     let oldEuler = appState.objectEulerAngles
@@ -1142,6 +1149,7 @@ private struct SnapshotHostingView: UIViewRepresentable {
                     
                 case 2: // 2 fingers: position movement
                     let moveX = Float(translation.x) * 0.005
+                    // Keep original vertical direction for 2-finger translation
                     let moveY = Float(translation.y) * -0.005
                     
                     let oldPos = appState.objectPosition
