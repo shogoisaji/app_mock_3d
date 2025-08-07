@@ -9,7 +9,17 @@ class AppState: ObservableObject {
     
     // 設定値
     @Published var backgroundColor: Color = .white
-    @Published var currentDevice: iPhoneModel = .iPhone15
+    // 中央集約したモデル管理（ModelAsset）に変更
+    @Published var currentDevice: ModelAsset = .iphone15
+    // 設定の DeviceModel から使用する実ファイル（ModelAsset）を決めるためのヘルパ
+    var selectedModelAsset: ModelAsset {
+        switch settings.currentDeviceModel {
+        case .iPhone15:
+            return .iphone15
+        default:
+            return .iphone
+        }
+    }
     
     // アスペクト比を設定から計算
     var aspectRatio: Double {

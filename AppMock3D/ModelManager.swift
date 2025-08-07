@@ -1,10 +1,37 @@
 import SceneKit
 import Foundation
 
+// 3Dモデルを一元管理する列挙型
+enum ModelAsset: String, CaseIterable {
+    case iphone      // "iphone.usdc"
+    case iphone15    // "iphone15.usdc"
+
+    // リソース探索用のベース名（拡張子なし）
+    var resourceName: String {
+        switch self {
+        case .iphone:   return "iphone"
+        case .iphone15: return "iphone15"
+        }
+    }
+
+    // UI表示などに使える表示名
+    var displayName: String {
+        switch self {
+        case .iphone:   return "iPhone"
+        case .iphone15: return "iPhone 15"
+        }
+    }
+}
+
 class ModelManager {
     static let shared = ModelManager()
     
     private init() {}
+    
+    // 新API: 一元管理された ModelAsset からロード
+    func loadModel(_ asset: ModelAsset) -> SCNScene? {
+        return loadModel(named: asset.resourceName)
+    }
     
     func loadModel(named modelName: String) -> SCNScene? {
         // Attempt to locate a model file using ModelFileLocator.
@@ -61,6 +88,11 @@ class ModelManager {
             print("Failed to load 3D model from \(url.path): \(error)")
             return nil
         }
+    }
+    
+    private func applyPostLoadAdjustments(for asset: ModelAsset, scene: SCNScene) {
+        // 材質セットアップ（loadSceneFromURL 内でも実施済みだが二重適用は安全）
+        setupDefaultMaterials(for: scene)
     }
     
     private func setupDefaultMaterials(for scene: SCNScene) {
@@ -131,7 +163,7 @@ class ModelManager {
         phoneBody.materials = [bodyMaterial]
         
         let phoneBodyNode = SCNNode(geometry: phoneBody)
-        phoneBodyNode.name = "iPhone"
+        phoneBodyNode.name = "iphone1"
         scene.rootNode.addChildNode(phoneBodyNode)
         
         // Create screen (this is where images will be applied)
@@ -164,16 +196,5 @@ class ModelManager {
         
         return scene
     }
-    
-    func loadiPhoneModel(modelType: iPhoneModel) -> SCNScene? {
-        return loadModel(named: modelType.rawValue)
-    }
 }
-
-enum iPhoneModel: String, CaseIterable {
-    case iPhone12 = "iphone12"
-    case iPhone13 = "iphone13"
-    case iPhone14 = "iphone14"
-    case iPhone14Pro = "iphone14pro"
-    case iPhone15 = "iphone15"
-}
+ 

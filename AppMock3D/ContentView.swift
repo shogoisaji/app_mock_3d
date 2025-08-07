@@ -111,7 +111,7 @@ struct ContentView: View {
                            previewSnapshot: nil)
             } else {
                 // Last resort: Create a new scene and export
-                let fallbackScene = ModelManager.shared.loadModel(named: "iphone14pro") ?? SCNScene()
+                let fallbackScene = ModelManager.shared.loadModel(named: "iphone1") ?? SCNScene()
                 let renderingEngine = RenderingEngine(scene: fallbackScene)
                 ExportView(renderingEngine: renderingEngine,
                            photoSaveManager: PhotoSaveManager(),
@@ -135,7 +135,7 @@ struct ContentView: View {
     
     private func loadModel() {
         // Load the default iPhone model
-        let model = ModelManager.shared.loadModel(named: "iphone14pro")
+        let model = ModelManager.shared.loadModel(.iphone15)
         
         if model == nil {
             appState.setImageError("Failed to load 3D model. Please restart the app.")
