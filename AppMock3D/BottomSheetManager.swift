@@ -25,13 +25,13 @@ struct BottomSheetManager<Content: View>: View {
                     Spacer()
                     if isOpen {
                         VStack(spacing: 0) {
-                            // Drag handle
-                            Rectangle()
-                                .fill(Color.gray)
-                                .frame(width: 40, height: 5)
-                                .cornerRadius(2.5)
-                                .padding(.top, 10)
-                                .padding(.bottom, 10)
+                            // // Drag handle
+                            // Rectangle()
+                            //     .fill(Color.gray)
+                            //     .frame(width: 40, height: 5)
+                            //     .cornerRadius(2.5)
+                            //     .padding(.top, 10)
+                            //     .padding(.bottom, 10)
                             
                             // Content
                             content

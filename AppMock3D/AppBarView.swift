@@ -3,7 +3,6 @@ import SwiftUI
 struct AppBarView: View {
     var title: String
     var onSave: () -> Void
-    var onSettings: () -> Void
     var onImageSelect: () -> Void
     var onMenu: () -> Void
 
@@ -30,14 +29,6 @@ struct AppBarView: View {
             // Right side: Existing buttons
             GlassContainer(cornerRadius: 20, intensity: .medium) {
                 HStack(spacing: 12) {
-                    GlassButton(
-                        symbol: "gearshape",
-                        action: onSettings,
-                        accessibilityId: "gear",
-                        size: 36,
-                        cornerRadius: 12
-                    )
-                    
                     GlassButton(
                         symbol: "photo",
                         action: onImageSelect,
@@ -70,7 +61,7 @@ struct AppBarView: View {
 struct AppBarView_Previews: PreviewProvider {
     static var previews: some View {
         VStack {
-            AppBarView(title: "タイトル", onSave: {}, onSettings: {}, onImageSelect: {}, onMenu: {})
+            AppBarView(title: "タイトル", onSave: {}, onImageSelect: {}, onMenu: {})
             Spacer()
         }
         .padding(.top, 20)
@@ -80,7 +71,7 @@ struct AppBarView_Previews: PreviewProvider {
         .preferredColorScheme(.light)
 
         VStack {
-            AppBarView(title: "タイトル", onSave: {}, onSettings: {}, onImageSelect: {}, onMenu: {})
+            AppBarView(title: "タイトル", onSave: {}, onImageSelect: {}, onMenu: {})
             Spacer()
         }
         .padding(.top, 20)

@@ -4,6 +4,7 @@ struct BottomAppBarView: View {
     var onGridToggle: () -> Void
     var onLightingAdjust: () -> Void
     var onResetTransform: () -> Void
+    var onSettings: () -> Void
     // Added to display the current lighting number (1-4)
     var lightingNumber: Int = 1
     
@@ -13,6 +14,15 @@ struct BottomAppBarView: View {
         HStack {
             GlassContainer(cornerRadius: 20, intensity: .medium) {
                 HStack(spacing: 12) {
+                    // Settings Button
+                    GlassButton(
+                        symbol: "gearshape",
+                        action: onSettings,
+                        accessibilityId: "gear",
+                        size: 36,
+                        cornerRadius: 12
+                    )
+
                     // Toggle grid helper lines
                     GlassButton(
                         symbol: "grid",
@@ -46,7 +56,7 @@ struct BottomAppBarView: View {
                                 .foregroundStyle(.primary)
                         }
                         .frame(width: 18, height: 16)
-                        .offset(x: 4, y: 4)
+                        .offset(x: 1, y: 1)
                         .accessibilityHidden(true)
                     }
                     
@@ -78,7 +88,7 @@ struct BottomAppBarView_Previews: PreviewProvider {
     static var previews: some View {
         VStack {
             Spacer()
-            BottomAppBarView(onGridToggle: {}, onLightingAdjust: {}, onResetTransform: {})
+            BottomAppBarView(onGridToggle: {}, onLightingAdjust: {}, onResetTransform: {}, onSettings: {})
         }
         .padding(.bottom, 20)
         .background(
@@ -88,7 +98,7 @@ struct BottomAppBarView_Previews: PreviewProvider {
         
         VStack {
             Spacer()
-            BottomAppBarView(onGridToggle: {}, onLightingAdjust: {}, onResetTransform: {})
+            BottomAppBarView(onGridToggle: {}, onLightingAdjust: {}, onResetTransform: {}, onSettings: {})
         }
         .padding(.bottom, 20)
         .background(

@@ -86,7 +86,7 @@ struct MenuView: View {
                 .padding()
             }
         }
-        .background(Color(hex: "#303135") ?? Color(red: 48/255, green: 49/255, blue: 53/255))
+        .background(Color(hex: "#B3B3B3"))
         .cornerRadius(24)
         .shadow(radius: 5)
         .tint(Color(hex: "#E99370") ?? .orange)

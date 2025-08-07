@@ -69,8 +69,6 @@ struct MainView: View {
             VStack(spacing: 0) {
                 AppBarView(title: "", onSave: {
                     shouldTakeSnapshot = true
-                }, onSettings: {
-                    appState.toggleSettings()
                 }, onImageSelect: {
                     handleImageButtonPressed()
                 }, onMenu: {
@@ -91,6 +89,9 @@ struct MainView: View {
                         },
                         onResetTransform: {
                             appState.triggerResetTransform()
+                        },
+                        onSettings: {
+                            appState.toggleSettings()
                         },
                         lightingNumber: appState.lightingPositionNumber
                     )

@@ -67,8 +67,8 @@ struct PreviewAreaView: View {
     }
     
     private func animateNodeAppearance(_ node: SCNNode) {
-        // Set initial state (scale: 0.5, rotation: -90 degrees)
-        node.scale = SCNVector3(0.5, 0.5, 0.5)
+        // Set initial state (scale: 0.1, rotation: -90 degrees)
+        node.scale = SCNVector3(0.3, 0.3, 0.3)
         node.eulerAngles = SCNVector3(0, -Float.pi/2, 0) // -90 degree rotation
         
         // Animate over 1 second (scale: 1.0, rotation: 0 degrees)
@@ -204,7 +204,7 @@ private struct SceneView: View {
         //         .stroke(Color.white.opacity(0.9), lineWidth: 1.5)
         // )
         .clipped()
-        .shadow(color: .black.opacity(0.4), radius: 14, x: 0, y: 2)
+        .shadow(color: .black.opacity(0.3), radius: 14, x: 0, y: 2)
         .animation(.easeInOut(duration: 0.3), value: currentScene.rootNode.childNodes.count)
         .overlay(alignment: .center) {
             if appState.isGridVisible {
