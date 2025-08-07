@@ -41,7 +41,6 @@ struct ContentView: View {
                 latestCameraTransform: $latestCameraTransform,
                 currentPreviewSnapshot: $currentPreviewSnapshot,
                 shouldTakeSnapshot: $shouldTakeSnapshot,
-                showingExportView: $showingExportView,
                 isSaving: $isSaving,
                 handleImageButtonPressed: handleImageButtonPressed
             )
@@ -85,9 +84,14 @@ struct ContentView: View {
             Button("Open Settings") {
                 openAppSettings()
             }
-            Button("Cancel", role: .cancel) { }
+            Button("Cancel", role: .cancel) { } 
         } message: {
             Text("To select an image, please allow access to your photo library. You can change permissions in the Settings app for \"AppMock3D\".")
+        }
+        .onChange(of: currentPreviewSnapshot) { _, newSnapshot in
+            if newSnapshot != nil {
+                showingExportView = true
+            }
         }
         .sheet(isPresented: $showingExportView) {
             // Use the snapshot image if it exists

@@ -18,7 +18,6 @@ struct MainView: View {
     @Binding var latestCameraTransform: SCNMatrix4?
     @Binding var currentPreviewSnapshot: UIImage?
     @Binding var shouldTakeSnapshot: Bool
-    @Binding var showingExportView: Bool
     @Binding var isSaving: Bool
     
     var handleImageButtonPressed: () -> Void
@@ -55,8 +54,7 @@ struct MainView: View {
                             latestSceneForExport: $latestSceneForExport,
                             latestCameraTransform: $latestCameraTransform,
                             currentPreviewSnapshot: $currentPreviewSnapshot,
-                            shouldTakeSnapshot: $shouldTakeSnapshot,
-                            showingExportView: $showingExportView
+                            shouldTakeSnapshot: $shouldTakeSnapshot
                         )
                         OverlayView(appState: appState, isSaving: $isSaving)
                     }

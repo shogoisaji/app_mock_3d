@@ -18,7 +18,6 @@ struct ThreeDSceneView: View {
     @Binding var latestCameraTransform: SCNMatrix4?
     @Binding var currentPreviewSnapshot: UIImage?
     @Binding var shouldTakeSnapshot: Bool
-    @Binding var showingExportView: Bool
 
     var body: some View {
         if let scene = scene {
@@ -35,9 +34,6 @@ struct ThreeDSceneView: View {
                 }, 
                 onSnapshotRequested: { snapshot in
                     currentPreviewSnapshot = snapshot
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                        showingExportView = true
-                    }
                 }
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
