@@ -197,13 +197,14 @@ private struct SceneView: View {
             appState: appState
         )
         .frame(width: previewWidth - 24, height: previewHeight)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .background(PreferenceBackground())
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(Color.white.opacity(0.9), lineWidth: 1.5)
-        )
+        // .overlay(
+        //     RoundedRectangle(cornerRadius: 10, style: .continuous)
+        //         .stroke(Color.white.opacity(0.9), lineWidth: 1.5)
+        // )
         .clipped()
+        .shadow(color: .black.opacity(0.4), radius: 14, x: 0, y: 2)
         .animation(.easeInOut(duration: 0.3), value: currentScene.rootNode.childNodes.count)
         .overlay(alignment: .center) {
             if appState.isGridVisible {
@@ -323,25 +324,24 @@ extension PreviewAreaView {
     private func applyLightingPreset(_ preset: AppState.LightingPreset) {
         // Get existing lights
         let main = currentScene.rootNode.childNode(withName: "mainLight", recursively: true)?.light
-        let ambient = currentScene.rootNode.childNode(withName: "ambientLight", recursively: true)?.light
         let fill = currentScene.rootNode.childNode(withName: "fillLight", recursively: true)?.light
         
         switch preset {
         case .neutral:
             main?.intensity = 480
-            ambient?.intensity = 180
+            currentScene.lightingEnvironment.intensity = 1.0
             fill?.intensity = 100
             main?.temperature = 6500 // Daylight
             fill?.temperature = 6500
         case .warm:
             main?.intensity = 520
-            ambient?.intensity = 190
+            currentScene.lightingEnvironment.intensity = 1.5
             fill?.intensity = 110
             main?.temperature = 4000
             fill?.temperature = 4500
         case .cool:
             main?.intensity = 450
-            ambient?.intensity = 170
+            currentScene.lightingEnvironment.intensity = 0.9
             fill?.intensity = 95
             main?.temperature = 8500
             fill?.temperature = 8000
@@ -377,6 +377,9 @@ extension PreviewAreaView {
         // Fine-tuned by position pattern
         var mainIntensity: CGFloat = 420
         var fillIntensity: CGFloat = 90
+        
+        // Set a consistent, brighter environment for all positions
+        currentScene.lightingEnvironment.intensity = 1.5
 
         switch pos {
         case .one:
@@ -823,7 +826,7 @@ extension PreviewAreaView {
                     .stroke(Color.white.opacity(0.35), lineWidth: 1.0)
     
                     // Emphasize the outer frame slightly
-                    RoundedRectangle(cornerRadius: 0)
+                    RoundedRectangle(cornerRadius: 12)
                         .stroke(Color.white.opacity(0.6), lineWidth: 1)
                 }
                 .blendMode(.screen) // Make it easier to see on a dark background
@@ -1029,7 +1032,7 @@ private struct SnapshotHostingView: UIViewRepresentable {
         ambientLightNode.light = SCNLight()
         ambientLightNode.light!.type = .ambient
         ambientLightNode.light!.color = UIColor(white: 0.3, alpha: 1.0)
-        ambientLightNode.light!.intensity = 240
+        ambientLightNode.light!.intensity = 20
         scene.rootNode.addChildNode(ambientLightNode)
         
         let fillLightNode = SCNNode()
@@ -1044,6 +1047,7 @@ private struct SnapshotHostingView: UIViewRepresentable {
         fillLightNode.light!.attenuationFalloffExponent = 1.0
         fillLightNode.position = SCNVector3(x: -5, y: 5, z: 5)
         scene.rootNode.addChildNode(fillLightNode)
+        scene.lightingEnvironment.intensity = 1.0
     }
     
     private func setupCamera(for scene: SCNScene) {

@@ -39,8 +39,7 @@ struct MainView: View {
     
     var body: some View {
         ZStack {
-            Color(.clear)
-                .background(backgroundColor)
+            Color(hex: "#D1D1D1")
                 .ignoresSafeArea()
             Color(.clear)
                 .background(Color(.black.opacity(0.1)))
@@ -76,6 +75,8 @@ struct MainView: View {
                     appState.toggleSettings()
                 }, onImageSelect: {
                     handleImageButtonPressed()
+                }, onMenu: {
+                    appState.toggleMenu()
                 })
                 .accessibilityIdentifier("AppBar")
                 .padding(.top, 0)

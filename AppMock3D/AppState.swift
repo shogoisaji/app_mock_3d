@@ -4,6 +4,7 @@ import SceneKit
 class AppState: ObservableObject {
     
     @Published var isSettingsPresented: Bool = false
+    @Published var isMenuPresented: Bool = false
     @Published var settings: AppSettings = AppSettings.load()
     
     // 設定値
@@ -76,6 +77,10 @@ class AppState: ObservableObject {
     
     func toggleSettings() {
         isSettingsPresented.toggle()
+    }
+    
+    func toggleMenu() {
+        isMenuPresented.toggle()
     }
 
     // グリッド切替

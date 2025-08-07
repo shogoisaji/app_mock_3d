@@ -64,6 +64,12 @@ struct ContentView: View {
                 content: SettingsView(appState: appState)
             )
             .animation(.easeInOut(duration: appState.isSettingsPresented ? 0.5 : 0.3), value: appState.isSettingsPresented)
+            
+            BottomSheetManager(
+                isOpen: $appState.isMenuPresented,
+                content: MenuView(appState: appState)
+            )
+            .animation(.easeInOut(duration: appState.isMenuPresented ? 0.5 : 0.3), value: appState.isMenuPresented)
         }
         .alert("Save Complete", isPresented: $showSaveSuccessAlert) {
             Button("OK") { }

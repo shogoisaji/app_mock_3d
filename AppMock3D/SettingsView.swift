@@ -14,133 +14,166 @@ struct SettingsView: View {
             
             ScrollView {
                 VStack(spacing: 20) {
-                    // Aspect Ratio Settings
-                    VStack {
-                        HStack {
-                            Text("Aspect Ratio")
-                            Spacer()
-                            Text(getAspectRatioText())
-                            Rectangle()
-                                .fill(Color(.systemGray4))
-                                .frame(width: getPreviewWidth(), height: getPreviewHeight())
-                                .cornerRadius(2)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 2)
-                                        .stroke(Color.gray, lineWidth: 1)
-                                )
-                            Image(systemName: "chevron.right")
-                                .rotationEffect(.degrees(showingAspectRatioSettings ? 90 : 0))
-                        }
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            withAnimation {
-                                showingAspectRatioSettings.toggle()
-                            }
-                        }
-                        
-                        if showingAspectRatioSettings {
-                            VStack(alignment: .leading, spacing: 15) {
-                                Picker("Aspect Ratio Preset", selection: $appState.settings.aspectRatioPreset) {
-                                    ForEach(AppSettings.AspectRatioPreset.allCases, id: \.self) { preset in
-                                        Text(preset.rawValue)
-                                    }
-                                }
-                                .pickerStyle(SegmentedPickerStyle())
-                            }
-                            .padding(.top, 10)
-                        }
-                    }
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(8)
-                    
-                    // Background Settings
-                    VStack {
-                        HStack {
-                            Text("Background")
-                            Spacer()
-                            if appState.settings.backgroundColor == .solidColor {
-                                Rectangle()
-                                    .fill(Color(hex: appState.settings.solidColorValue) ?? .white)
-                                    .frame(width: 24, height: 24)
-                                    .cornerRadius(4)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 4)
-                                            .stroke(Color.gray, lineWidth: 1)
+                    // Aspect Ratio Settings with Glass Effect
+                    GlassContainer(cornerRadius: 16, intensity: .subtle) {
+                        VStack {
+                            HStack {
+                                Text("Aspect Ratio")
+                                    .font(.system(size: 16, weight: .medium))
+                                Spacer()
+                                Text(getAspectRatioText())
+                                    .font(.system(size: 14, weight: .regular))
+                                    .foregroundColor(.secondary)
+                                
+                                // Glass preview rectangle
+                                ZStack {
+                                    GlassEffectView(
+                                        cornerRadius: 3,
+                                        borderLineWidth: 0.5,
+                                        shadowRadius: 2,
+                                        shadowOffset: CGSize(width: 0, height: 1),
+                                        intensity: .medium
                                     )
-                            } else {
-                                Text(appState.settings.gradientType.rawValue)
+                                }
+                                .frame(width: getPreviewWidth(), height: getPreviewHeight())
+                                
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(.secondary)
+                                    .rotationEffect(.degrees(showingAspectRatioSettings ? 90 : 0))
+                                    .animation(.spring(response: 0.3, dampingFraction: 0.8), value: showingAspectRatioSettings)
                             }
-                            Image(systemName: "chevron.right")
-                                .rotationEffect(.degrees(showingBackgroundSettings ? 90 : 0))
-                        }
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            withAnimation {
-                                showingBackgroundSettings.toggle()
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                    showingAspectRatioSettings.toggle()
+                                }
                             }
-                        }
-                        
-                        if showingBackgroundSettings {
-                            VStack(alignment: .leading, spacing: 15) {
-                                Picker("Background Type", selection: $appState.settings.backgroundColor) {
-                                    ForEach(AppSettings.BackgroundColorSetting.allCases, id: \.self) { type in
-                                        Text(type.rawValue)
+                            
+                            if showingAspectRatioSettings {
+                                VStack(alignment: .leading, spacing: 15) {
+                                    Picker("Aspect Ratio Preset", selection: $appState.settings.aspectRatioPreset) {
+                                        ForEach(AppSettings.AspectRatioPreset.allCases, id: \.self) { preset in
+                                            Text(preset.rawValue)
+                                        }
                                     }
+                                    .pickerStyle(SegmentedPickerStyle())
                                 }
-                                .pickerStyle(SegmentedPickerStyle())
-                                
+                                .padding(.top, 10)
+                                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                            }
+                        }
+                        .padding()
+                    }
+                    
+                    // Background Settings with Glass Effect
+                    GlassContainer(cornerRadius: 16, intensity: .subtle) {
+                        VStack {
+                            HStack {
+                                Text("Background")
+                                    .font(.system(size: 16, weight: .medium))
+                                Spacer()
                                 if appState.settings.backgroundColor == .solidColor {
-                                    ColorPicker("Background Color", selection: Binding(get: {
-                                        Color(hex: appState.settings.solidColorValue) ?? Color.white
-                                    }, set: { color in
-                                        appState.settings.solidColorValue = color.toHex()
-                                    }))
+                                    ZStack {
+                                        GlassEffectView(
+                                            cornerRadius: 4,
+                                            borderLineWidth: 0.5,
+                                            shadowRadius: 2,
+                                            shadowOffset: CGSize(width: 0, height: 1),
+                                            intensity: .medium
+                                        )
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 4)
+                                                .fill(Color(hex: appState.settings.solidColorValue) ?? .white)
+                                                .opacity(0.8)
+                                        )
+                                    }
+                                    .frame(width: 24, height: 24)
+                                } else {
+                                    Text(appState.settings.gradientType.rawValue)
+                                        .font(.system(size: 14, weight: .regular))
+                                        .foregroundColor(.secondary)
                                 }
-                                
-                                if appState.settings.backgroundColor == .gradient {
-                                    Picker("Gradient", selection: $appState.settings.gradientType) {
-                                        ForEach(AppSettings.GradientType.allCases, id: \.self) { type in
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(.secondary)
+                                    .rotationEffect(.degrees(showingBackgroundSettings ? 90 : 0))
+                                    .animation(.spring(response: 0.3, dampingFraction: 0.8), value: showingBackgroundSettings)
+                            }
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                    showingBackgroundSettings.toggle()
+                                }
+                            }
+                            
+                            if showingBackgroundSettings {
+                                VStack(alignment: .leading, spacing: 15) {
+                                    Picker("Background Type", selection: $appState.settings.backgroundColor) {
+                                        ForEach(AppSettings.BackgroundColorSetting.allCases, id: \.self) { type in
                                             Text(type.rawValue)
                                         }
                                     }
                                     .pickerStyle(SegmentedPickerStyle())
                                     
-                                    ColorPicker("Start Color", selection: Binding(get: {
-                                        Color(hex: appState.settings.gradientStartColor) ?? .white
-                                    }, set: { color in
-                                        appState.settings.gradientStartColor = color.toHex()
-                                    }))
+                                    if appState.settings.backgroundColor == .solidColor {
+                                        ColorPicker("Background Color", selection: Binding(get: {
+                                            Color(hex: appState.settings.solidColorValue) ?? Color.white
+                                        }, set: { color in
+                                            appState.settings.solidColorValue = color.toHex()
+                                        }))
+                                    }
                                     
-                                    ColorPicker("End Color", selection: Binding(get: {
-                                        Color(hex: appState.settings.gradientEndColor) ?? .black
-                                    }, set: { color in
-                                        appState.settings.gradientEndColor = color.toHex()
-                                    }))
+                                    if appState.settings.backgroundColor == .gradient {
+                                        Picker("Gradient", selection: $appState.settings.gradientType) {
+                                            ForEach(AppSettings.GradientType.allCases, id: \.self) { type in
+                                                Text(type.rawValue)
+                                            }
+                                        }
+                                        .pickerStyle(SegmentedPickerStyle())
+                                        
+                                        ColorPicker("Start Color", selection: Binding(get: {
+                                            Color(hex: appState.settings.gradientStartColor) ?? .white
+                                        }, set: { color in
+                                            appState.settings.gradientStartColor = color.toHex()
+                                        }))
+                                        
+                                        ColorPicker("End Color", selection: Binding(get: {
+                                            Color(hex: appState.settings.gradientEndColor) ?? .black
+                                        }, set: { color in
+                                            appState.settings.gradientEndColor = color.toHex()
+                                        }))
+                                    }
                                 }
+                                .padding(.top, 10)
+                                .transition(.opacity.combined(with: .scale(scale: 0.95)))
                             }
-                            .padding(.top, 10)
-                        }
-                    }
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(8)
-                    
-                    // Device Selection Settings
-                    Button(action: {
-                        showingDeviceSelection = true
-                    }) {
-                        HStack {
-                            Text("Device Model")
-                            Spacer()
-                            Text(appState.settings.currentDeviceModel.rawValue)
-                            Image(systemName: "chevron.right")
                         }
                         .padding()
-                        .background(Color(.systemGray6))
-                        .cornerRadius(8)
                     }
-                    .padding()
+                    
+                    // Device Selection Settings with Glass Effect
+                    GlassLabelButton(
+                        text: "Device Model",
+                        symbol: "chevron.right",
+                        action: {
+                            showingDeviceSelection = true
+                        },
+                        accessibilityId: "deviceSelection",
+                        height: 50,
+                        cornerRadius: 16,
+                        intensity: .subtle
+                    )
+                    .overlay(
+                        HStack {
+                            Spacer()
+                            Text(appState.settings.currentDeviceModel.rawValue)
+                                .font(.system(size: 14, weight: .regular))
+                                .foregroundColor(.secondary)
+                                .padding(.trailing, 40) // Space for chevron
+                        }
+                        .padding(.horizontal, 16)
+                    )
                 }
                 .padding()
             }
