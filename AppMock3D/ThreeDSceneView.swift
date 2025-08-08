@@ -18,11 +18,12 @@ struct ThreeDSceneView: View {
     @Binding var latestCameraTransform: SCNMatrix4?
     @Binding var currentPreviewSnapshot: UIImage?
     @Binding var shouldTakeSnapshot: Bool
+    // no explicit identity; rely on parent id and state management
 
     var body: some View {
         if let scene = scene {
             PreviewAreaView(
-                scene: scene, 
+                currentScene: Binding(get: { scene }, set: { newValue in self.scene = newValue }), 
                 appState: appState, 
                 imagePickerManager: imagePickerManager, 
                 shouldTakeSnapshot: $shouldTakeSnapshot, 
@@ -38,6 +39,7 @@ struct ThreeDSceneView: View {
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .accessibilityIdentifier("3D Preview")
+            // keep identity stable to allow background color changes to propagate
         } else {
             Text("Loading 3D Model...")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

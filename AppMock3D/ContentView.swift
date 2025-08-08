@@ -48,6 +48,12 @@ struct ContentView: View {
             .onAppear {
                 loadModel()
             }
+            // 端末変更時にモデルを再ロードし、アニメーション付きで再表示
+            .onChange(of: appState.settings.currentDeviceModel) { _, _ in
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.82, blendDuration: 0.1)) {
+                    reloadModelForCurrentSelection()
+                }
+            }
             .photosPicker(
                 isPresented: $showingImagePicker,
                 selection: $imagePickerManager.selectedItem,
@@ -58,12 +64,20 @@ struct ContentView: View {
                 imagePickerManager.loadImage()
             }
             
+            // 個別設定シート: アスペクト比
             BottomSheetManager(
-                isOpen: $appState.isSettingsPresented,
-                content: SettingsView(appState: appState)
+                isOpen: $appState.isAspectSheetPresented,
+                content: AspectRatioSettingsView(settings: $appState.settings, isPresented: $appState.isAspectSheetPresented)
             )
-            .animation(.easeInOut(duration: appState.isSettingsPresented ? 0.4 : 0.3), value: appState.isSettingsPresented)
-            
+            .animation(.easeInOut(duration: appState.isAspectSheetPresented ? 0.4 : 0.3), value: appState.isAspectSheetPresented)
+
+            // 個別設定シート: デバイス
+            BottomSheetManager(
+                isOpen: $appState.isDeviceSheetPresented,
+                content: DeviceSelectionView(settings: $appState.settings, isPresented: $appState.isDeviceSheetPresented)
+            )
+            .animation(.easeInOut(duration: appState.isDeviceSheetPresented ? 0.4 : 0.3), value: appState.isDeviceSheetPresented)
+
             BottomSheetManager(
                 isOpen: $appState.isMenuPresented,
                 content: MenuView(appState: appState)
@@ -143,6 +157,22 @@ struct ContentView: View {
             sceneView = model
             // Set the scene at initial load for export
             latestSceneForExport = model
+        }
+    }
+
+    private func reloadModelForCurrentSelection() {
+        let asset = appState.selectedModelAsset
+        #if DEBUG
+        print("[DeviceSwitch] selected DeviceModel=\(appState.settings.currentDeviceModel.rawValue), asset=\(asset.rawValue)")
+        #endif
+        let model = ModelManager.shared.loadModel(asset)
+        if let scene = model {
+            sceneView = scene
+            latestSceneForExport = scene
+            // 端末切替完了トークンを更新して、プレビュー側に確実に通知
+            appState.deviceReloadToken += 1
+            // 新しいデバイス表示に向けて transform を既定状態へ（アニメの終点と一致させる）
+            appState.resetObjectTransformState()
         }
     }
     

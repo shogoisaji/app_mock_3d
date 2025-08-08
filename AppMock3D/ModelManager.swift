@@ -3,25 +3,22 @@ import Foundation
 
 // 3Dモデルを一元管理する列挙型
 enum ModelAsset: String, CaseIterable {
-    case iphone      // "iphone.usdc"
-    case iphone15    // "iphone15.usdc"
     case iphone16    // "iphone16.usdc"
+    case iphoneSE    // "iphoneSE.usdc"
 
     // リソース探索用のベース名（拡張子なし）
     var resourceName: String {
         switch self {
-        case .iphone:   return "iphone"
-        case .iphone15: return "iphone15"
         case .iphone16: return "iphone16"
+        case .iphoneSE: return "iphoneSE"
         }
     }
 
     // UI表示などに使える表示名
     var displayName: String {
         switch self {
-        case .iphone:   return "iPhone"
-        case .iphone15: return "iPhone 15"
         case .iphone16: return "iPhone 16"
+        case .iphoneSE: return "iPhone SE"
         }
     }
 }
@@ -33,7 +30,19 @@ class ModelManager {
     
     // 新API: 一元管理された ModelAsset からロード
     func loadModel(_ asset: ModelAsset) -> SCNScene? {
-        return loadModel(named: asset.resourceName)
+        // 名称の大文字小文字違いにロバストに対応
+        let base = asset.resourceName
+        var candidates: [String] = [base]
+        if asset == .iphoneSE {
+            // いくつかのバリエーションも探索
+            candidates.append(contentsOf: ["iphoneSe", "iphonese", "IphoneSE", "IphoneSe"]) 
+        }
+        for name in candidates {
+            if let scene = loadModel(named: name) {
+                return scene
+            }
+        }
+        return loadModel(named: base)
     }
     
     func loadModel(named modelName: String) -> SCNScene? {
@@ -45,7 +54,9 @@ class ModelManager {
         }
         
         // If no model is found, fall back to a placeholder model.
+        #if DEBUG
         print("Using placeholder model for: \(modelName)")
+        #endif
         return createPlaceholderModel()
     }
     
@@ -54,24 +65,30 @@ class ModelManager {
         if let url = ModelFileLocator.locateModel(named: modelName) {
             return ModelFileLocator.loadScene(from: url)
         }
+        #if DEBUG
         print("No supported 3D model found for: \(modelName)")
+        #endif
         return nil
     }
     
     private func loadSceneFromURL(_ url: URL, modelName: String) -> SCNScene? {
         do {
+            #if DEBUG
             print("Loading 3D model from: \(url.path)")
+            #endif
             
             // SceneSourceを使用してより詳細な情報を取得
             let sceneSource = SCNSceneSource(url: url, options: nil)
             
             // 利用可能な識別子をログ出力
+            #if DEBUG
             if let identifiers = sceneSource?.identifiersOfEntries(withClass: SCNGeometry.self) {
                 print("Available geometry identifiers: \(identifiers)")
             }
             if let nodeIdentifiers = sceneSource?.identifiersOfEntries(withClass: SCNNode.self) {
                 print("Available node identifiers: \(nodeIdentifiers)")
             }
+            #endif
             
             let scene = try SCNScene(url: url, options: [
                 SCNSceneSource.LoadingOption.convertToYUp: true,
@@ -85,10 +102,14 @@ class ModelManager {
             // Apply default materials to the loaded model
             setupDefaultMaterials(for: scene)
             
+            #if DEBUG
             print("Successfully loaded 3D model: \(modelName) from \(url.pathExtension.uppercased())")
+            #endif
             return scene
         } catch {
+            #if DEBUG
             print("Failed to load 3D model from \(url.path): \(error)")
+            #endif
             return nil
         }
     }
@@ -99,9 +120,11 @@ class ModelManager {
     }
     
     private func setupDefaultMaterials(for scene: SCNScene) {
+        #if DEBUG
         print("=== Model Node Structure Debug ===")
         debugNodeStructure(scene.rootNode, level: 0)
-        print("=== End Node Structure Debug ===")
+        print("=== End Model Node Structure Debug ===")
+        #endif
         
         scene.rootNode.enumerateChildNodes { (node, _) in
             if let geometry = node.geometry {
@@ -140,7 +163,9 @@ class ModelManager {
         let hasGeometry = node.geometry != nil
         let materialCount = node.geometry?.materials.count ?? 0
         
+        #if DEBUG
         print("\(indent)- \(nodeName) (geometry: \(hasGeometry), materials: \(materialCount))")
+        #endif
         
         for child in node.childNodes {
             debugNodeStructure(child, level: level + 1)
@@ -183,7 +208,9 @@ class ModelManager {
         screenNode.position = SCNVector3(x: 0, y: 0, z: 0.041) // Position in front of the body
         phoneBodyNode.addChildNode(screenNode)
         
+        #if DEBUG
         print("Created placeholder model with screen node: \(screenNode.name ?? "unnamed")")
+        #endif
         
         // Create home button area (for visual detail)
         let homeButtonArea = SCNBox(width: 0.6, height: 0.15, length: 0.001, chamferRadius: 0.01)

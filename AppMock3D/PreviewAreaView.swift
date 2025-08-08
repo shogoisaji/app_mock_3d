@@ -11,10 +11,11 @@ struct PreviewFramePreferenceKey: PreferenceKey {
 }
 
 struct PreviewAreaView: View {
-    let originalScene: SCNScene
+    @Binding var currentScene: SCNScene
     @ObservedObject var appState: AppState
     @ObservedObject var imagePickerManager: ImagePickerManager
-    @State private var currentScene: SCNScene
+    // アピアアニメーション中は AppState 反映を一時停止するためのフラグ
+    @State private var isAppearing: Bool = false
     // Hold initial transforms (per component)
     @State private var initialModelPosition: SCNVector3?
     @State private var initialModelScale: SCNVector3?
@@ -30,12 +31,12 @@ struct PreviewAreaView: View {
     var onSnapshotRequested: ((UIImage?) -> Void)? = nil
     // Added: Trigger for snapshot request
     @Binding var shouldTakeSnapshot: Bool
+
     
-    init(scene: SCNScene, appState: AppState, imagePickerManager: ImagePickerManager, shouldTakeSnapshot: Binding<Bool>, onSceneUpdated: ((SCNScene) -> Void)? = nil, onCameraUpdated: ((SCNMatrix4) -> Void)? = nil, onSnapshotRequested: ((UIImage?) -> Void)? = nil) {
-        self.originalScene = scene
+    init(currentScene: Binding<SCNScene>, appState: AppState, imagePickerManager: ImagePickerManager, shouldTakeSnapshot: Binding<Bool>, onSceneUpdated: ((SCNScene) -> Void)? = nil, onCameraUpdated: ((SCNMatrix4) -> Void)? = nil, onSnapshotRequested: ((UIImage?) -> Void)? = nil) {
+        self._currentScene = currentScene
         self.appState = appState
         self.imagePickerManager = imagePickerManager
-        self._currentScene = State(initialValue: scene)
         self._shouldTakeSnapshot = shouldTakeSnapshot
         self.onSceneUpdated = onSceneUpdated
         self.onCameraUpdated = onCameraUpdated
@@ -43,15 +44,15 @@ struct PreviewAreaView: View {
     }
     
     private func startInitialAnimation() {
-        // Apply animation to the currently displayed scene (currentScene)
-        guard let manipulationRoot = currentScene.rootNode.childNode(withName: "manipulationRoot", recursively: false) else {
-            // If manipulationRoot is not found, find the first node with geometry
-            if let geometryNode = findFirstGeometryNode(in: currentScene.rootNode) {
-                animateNodeAppearance(geometryNode)
-            }
-            return
+        // アニメーション期間中は applyAppStateTransform による上書きを抑止
+        isAppearing = true
+        // アニメ対象のノードを安全に取得（なければ作る）
+        let target: SCNNode = ensureManipulationRoot()
+        animateNodeAppearance(target)
+        // アニメーション終了後にフラグを戻す（duration と同等の 1.0s + 小さな猶予）
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) {
+            isAppearing = false
         }
-        animateNodeAppearance(manipulationRoot)
     }
     
     private func findFirstGeometryNode(in root: SCNNode) -> SCNNode? {
@@ -115,6 +116,13 @@ struct PreviewAreaView: View {
                 startInitialAnimation()
             }
         }
+        // 端末切替完了トークンの変化を監視し、シーン差し替え後に必ずアニメーションを開始
+        .onChange(of: appState.deviceReloadToken) { _, _ in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                startInitialAnimation()
+            }
+        }
+        // Keep state stable; state is bound to upstream scene via @Binding
     }
 }
 
@@ -890,6 +898,8 @@ extension PreviewAreaView {
     
     // Apply the transform held in AppState to manipulationRoot
     private func applyAppStateTransform() {
+        // アピアアニメーション中はスナップ上書きを避ける
+        if isAppearing { return }
         // Get the root for manipulation (create if it doesn't exist)
         let root = ensureManipulationRoot()
         
@@ -996,6 +1006,10 @@ private struct SnapshotHostingView: UIViewRepresentable {
         // Update the SCNView reference and AppState in the Coordinator
         context.coordinator.scnView = uiView
         context.coordinator.appState = appState
+        
+        // When the scene instance changes, ensure lighting and camera exist on the new scene
+        setupLighting(for: scene)
+        setupCamera(for: scene)
         
         // Update background settings
         updateSceneBackground(scene: scene, settings: appState.settings, size: previewSize)
@@ -1225,13 +1239,18 @@ struct PreviewAreaView_Previews: PreviewProvider {
 
 private struct PreviewAreaViewWrapper: View {
     @State private var shouldTakeSnapshot = false
+    @State private var scene = SCNScene()
+    @State private var didSetup = false
     
     var body: some View {
-        let scene = SCNScene()
-        let box = SCNBox(width: 0.1, height: 0.2, length: 0.05, chamferRadius: 0.01)
-        let boxNode = SCNNode(geometry: box)
-        scene.rootNode.addChildNode(boxNode)
+        // Setup a simple scene once for preview
+        if !didSetup {
+            let box = SCNBox(width: 0.1, height: 0.2, length: 0.05, chamferRadius: 0.01)
+            let boxNode = SCNNode(geometry: box)
+            scene.rootNode.addChildNode(boxNode)
+            didSetup = true
+        }
         
-        return PreviewAreaView(scene: scene, appState: AppState(), imagePickerManager: ImagePickerManager(), shouldTakeSnapshot: $shouldTakeSnapshot)
+        return PreviewAreaView(currentScene: $scene, appState: AppState(), imagePickerManager: ImagePickerManager(), shouldTakeSnapshot: $shouldTakeSnapshot)
     }
 }

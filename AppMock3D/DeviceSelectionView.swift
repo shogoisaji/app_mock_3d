@@ -5,69 +5,76 @@ struct DeviceSelectionView: View {
     @Binding var isPresented: Bool
     
     var body: some View {
-        VStack(spacing: 20) {
-            HStack {
-                Text("Select Device Model")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                Spacer()
-            }
-            .padding(.horizontal)
-            
-            // Device model selection
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Device Model")
-                    .font(.headline)
-                
-                Picker("Device Model", selection: $settings.currentDeviceModel) {
-                    ForEach(AppSettings.DeviceModel.allCases, id: \.rawValue) { model in
-                        Text(model.rawValue).tag(model)
-                    }
-                }
-                .pickerStyle(WheelPickerStyle())
-                .frame(height: 150)
-            }
-            
-            // Device preview information
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Model Information")
-                    .font(.headline)
-                
+        GlassContainer(cornerRadius: 20, intensity: .medium) {
+            VStack(spacing: 16) {
                 HStack {
-                    Text("Selected Model:")
+                    Text("Select Device Model")
+                        .font(.title3)
+                        .fontWeight(.semibold)
                     Spacer()
-                    Text(settings.currentDeviceModel.rawValue)
-                        .fontWeight(.bold)
                 }
-                .padding()
-                .background(Color(.systemGray6))
-                .cornerRadius(8)
-            }
-            
-            Spacer()
-            
-            // Action buttons
-            HStack {
-                Button("Cancel") {
-                    isPresented = false
-                }
-                .padding()
-                .frame(maxWidth: .infinity)
-                .background(Color(.systemGray5))
-                .cornerRadius(8)
+                .padding(.horizontal, 8)
                 
-                Button("Apply") {
-                    settings.save()
-                    isPresented = false
+                // Device model selection (horizontal scroll with image + name)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Device Model")
+                        .font(.headline)
+
+                    ZStack {
+                        GlassEffectView(
+                            cornerRadius: 14,
+                            borderLineWidth: 0.6,
+                            shadowRadius: 6,
+                            shadowOffset: CGSize(width: 0, height: 3),
+                            intensity: .subtle
+                        )
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            LazyHStack(spacing: 16) {
+                                ForEach(AppSettings.DeviceModel.allCases, id: \.rawValue) { model in
+                                    VStack(spacing: 8) {
+                                        // image file name only for supported devices
+                                        let imageName: String = {
+                                            switch model {
+                                            case .iPhone16: return "iphone16"
+                                            case .iPhoneSE: return "iphoneSE"
+                                            default: return ""
+                                            }
+                                        }()
+                                        Image(uiImage: UIImage(named: imageName) ?? UIImage(named: "iphone16") ?? UIImage())
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 96, height: 96)
+                                            .cornerRadius(12)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 12)
+                                                    .stroke(settings.currentDeviceModel == model ? Color.accentColor : Color.white.opacity(0.3), lineWidth: settings.currentDeviceModel == model ? 3 : 1)
+                                            )
+                                            .shadow(color: Color.black.opacity(0.15), radius: 6, x: 0, y: 3)
+
+                                        Text(model.rawValue)
+                                            .font(.caption)
+                                            .foregroundColor(.primary)
+                                    }
+                                    .padding(8)
+                                    .onTapGesture {
+                                        // 即時適用してシートを閉じる
+                                        settings.currentDeviceModel = model
+                                        settings.save()
+                                        isPresented = false
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 12)
+                        }
+                        .frame(height: 150)
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
-                .padding()
-                .frame(maxWidth: .infinity)
-                .background(Color.blue)
-                .foregroundColor(.white)
-                .cornerRadius(8)
             }
+            .padding(16)
         }
-        .padding()
+        .padding(.horizontal, 16)
     }
 }
 

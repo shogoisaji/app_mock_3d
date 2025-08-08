@@ -23,7 +23,7 @@ struct AppSettings: Codable, Equatable {
     var environmentLightingIntensity: Double = 1.0
     
     // デバイスモデル選択
-    var currentDeviceModel: DeviceModel = .iPhone15
+    var currentDeviceModel: DeviceModel = .iPhone16
     
     enum AspectRatioPreset: String, CaseIterable, Codable {
         case sixteenToNine = "16:9"
@@ -45,10 +45,16 @@ struct AppSettings: Codable, Equatable {
     }
     
     enum DeviceModel: String, CaseIterable, Codable {
-        case iPhone12 = "iPhone 12"
-        case iPhone13 = "iPhone 13"
-        case iPhone14 = "iPhone 14"
-        case iPhone15 = "iPhone 15"
+        case iPhone16 = "iPhone 16"
+        case iPhoneSE = "iPhone SE"
+
+        // 現在のモデルの短縮ラベル（例: iPhone 15 -> "15"）
+        var label: String {
+            switch self {
+            case .iPhone16: return "16"
+            case .iPhoneSE: return "SE"
+            }
+        }
     }
 }
 

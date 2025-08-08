@@ -6,18 +6,27 @@ class AppState: ObservableObject {
     @Published var isSettingsPresented: Bool = false
     @Published var isMenuPresented: Bool = false
     @Published var settings: AppSettings = AppSettings.load()
+
+    // 追加: 個別設定用ボトムシートの表示状態
+    @Published var isBackgroundSheetPresented: Bool = false
+    @Published var isAspectSheetPresented: Bool = false
+    @Published var isDeviceSheetPresented: Bool = false
     
     // 設定値
     @Published var backgroundColor: Color = .white
     // 中央集約したモデル管理（ModelAsset）に変更
-    @Published var currentDevice: ModelAsset = .iphone15
+    @Published var currentDevice: ModelAsset = .iphone16
+    // 端末モデルの切替に伴い、ビューを確実に再構築させるためのトークン
+    @Published var deviceReloadToken: Int = 0
     // 設定の DeviceModel から使用する実ファイル（ModelAsset）を決めるためのヘルパ
     var selectedModelAsset: ModelAsset {
         switch settings.currentDeviceModel {
-        case .iPhone15:
-            return .iphone15
+        case .iPhone16:
+            return .iphone16
+        case .iPhoneSE:
+            return .iphoneSE
         default:
-            return .iphone
+            return .iphone16
         }
     }
     
@@ -95,6 +104,11 @@ class AppState: ObservableObject {
     func toggleMenu() {
         isMenuPresented.toggle()
     }
+
+    // 個別シートトグル
+    func toggleBackgroundSheet() { isBackgroundSheetPresented.toggle() }
+    func toggleAspectSheet() { isAspectSheetPresented.toggle() }
+    func toggleDeviceSheet() { isDeviceSheetPresented.toggle() }
 
     // グリッド切替
     func toggleGrid() {

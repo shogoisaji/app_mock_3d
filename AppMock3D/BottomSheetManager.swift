@@ -4,6 +4,8 @@ import UIKit
 struct BottomSheetManager<Content: View>: View {
     @Binding var isOpen: Bool
     var content: Content
+    // 視覚的にバーの下端と一致させるには外側 12pt のみ（内側 6pt はビュー枠内のインセット）
+    var bottomSpacing: CGFloat = 12
     
     @State private var dragOffset: CGFloat = 0
     
@@ -21,7 +23,7 @@ struct BottomSheetManager<Content: View>: View {
                 }
                 
                 // Bottom sheet
-                VStack {
+                VStack(spacing: 0) {
                     Spacer()
                     if isOpen {
                         VStack(spacing: 0) {
@@ -35,10 +37,12 @@ struct BottomSheetManager<Content: View>: View {
                             
                             // Content
                             content
+                                .fixedSize(horizontal: false, vertical: true)
                                 .padding(.horizontal, 16)
-                                .padding(.bottom, 16)
                         }
-                        .frame(height: geometry.size.height / 2)
+                        // 高さは可変（必要分だけ）。上限は画面の80%に制限。
+                        .frame(maxWidth: .infinity)
+                        .frame(maxHeight: geometry.size.height * 0.8, alignment: .bottom)
                         // .background(Color(.secondarySystemBackground))
                         .cornerRadius(20, corners: [.topLeft, .topRight])
                         .shadow(radius: 10)
@@ -59,7 +63,8 @@ struct BottomSheetManager<Content: View>: View {
                         .transition(.move(edge: .bottom))
                     }
                 }
-                .edgesIgnoringSafeArea(.all)
+                // シート全体の底辺位置を Bottom App Bar の 12pt 外側パディングに合わせる
+                .padding(.bottom, bottomSpacing)
             }
         }
         .background(Color.clear)

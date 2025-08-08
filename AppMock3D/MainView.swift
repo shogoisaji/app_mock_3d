@@ -21,7 +21,6 @@ struct MainView: View {
     @Binding var isSaving: Bool
     
     var handleImageButtonPressed: () -> Void
-    
     // Get the background color based on settings
     private var backgroundColor: Color {
         switch appState.settings.backgroundColor {
@@ -56,6 +55,12 @@ struct MainView: View {
                             currentPreviewSnapshot: $currentPreviewSnapshot,
                             shouldTakeSnapshot: $shouldTakeSnapshot
                         )
+                        // デバイス変更時の再表示アニメーション
+                        .id(appState.settings.currentDeviceModel.rawValue)
+                        .transition(.asymmetric(
+                            insertion: .scale(scale: 0.96).combined(with: .opacity),
+                            removal: .opacity
+                        ))
                         OverlayView(appState: appState, isSaving: $isSaving)
                     }
                 } else {
@@ -78,29 +83,50 @@ struct MainView: View {
                 .padding(.top, 0)
                 
                 Spacer()
-                
-                HStack {
-                    BottomAppBarView(
-                        onGridToggle: {
-                            appState.toggleGrid()
-                        },
-                        onLightingAdjust: {
-                            appState.cycleLightingPosition()
-                        },
-                        onResetTransform: {
-                            appState.triggerResetTransform()
-                        },
-                        onSettings: {
-                            appState.toggleSettings()
-                        },
-                        lightingNumber: appState.lightingPositionNumber
-                    )
-                    .accessibilityIdentifier("BottomAppBar")
-                    
-                    Spacer()
+                Spacer()
+
+                // Bottom area stack: app bar only (background color is picked directly on the button)
+                VStack(spacing: 8) {
+                    HStack {
+                        BottomAppBarView(
+                            onGridToggle: {
+                                appState.toggleGrid()
+                            },
+                            onLightingAdjust: {
+                                appState.cycleLightingPosition()
+                            },
+                            onResetTransform: {
+                                appState.triggerResetTransform()
+                            },
+                            backgroundColorBinding: Binding(get: {
+                                backgroundColor
+                            }, set: { newColor in
+                                // ColorPicker で色を選んだら背景モードを Solid に切替え、
+                                // 構造体を再代入して @Published を発火させ、永続化も行う
+                                var s = appState.settings
+                                s.backgroundColor = .solidColor
+                                s.solidColorValue = newColor.toHex()
+                                appState.settings = s
+                                appState.settings.save()
+                            }),
+                            onAspectTap: {
+                                appState.toggleAspectSheet()
+                            },
+                            onDeviceTap: {
+                                appState.toggleDeviceSheet()
+                            },
+                            lightingNumber: appState.lightingPositionNumber,
+                            backgroundDisplayColor: backgroundColor,
+                            aspectRatio: appState.aspectRatio,
+                            deviceLabel: appState.settings.currentDeviceModel.label
+                        )
+                        .accessibilityIdentifier("BottomAppBar")
+                        
+                        Spacer()
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 12)
                 }
-                .padding(.horizontal, 12)
-                .padding(.bottom, 12)
             }
             .padding(.horizontal, 0)
         }

@@ -5,84 +5,36 @@ struct AspectRatioSettingsView: View {
     @Binding var isPresented: Bool
     
     var body: some View {
-        VStack(spacing: 20) {
-            HStack {
-                Text("Aspect Ratio Settings")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                Spacer()
-            }
-            .padding(.horizontal)
-            
-            // Preset selection
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Preset")
-                    .font(.headline)
-                
-                Picker("Aspect Ratio Preset", selection: $settings.aspectRatioPreset) {
-                    ForEach(AppSettings.AspectRatioPreset.allCases, id: \.rawValue) { preset in
-                        Text(preset.rawValue).tag(preset)
-                    }
-                }
-                .pickerStyle(SegmentedPickerStyle())
-            }
-            
-            // Custom aspect ratio
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Custom Aspect Ratio")
-                    .font(.headline)
-                
+        GlassContainer(cornerRadius: 20, intensity: .medium) {
+            VStack(spacing: 16) {
                 HStack {
-                    Text(String(format: "%.3f", settings.customAspectRatio))
-                        .frame(width: 50)
+                    Text("Aspect Ratio Settings")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                    Spacer()
+                }
+                .padding(.horizontal, 8)
+                
+                // Preset selection
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Preset")
+                        .font(.headline)
                     
-                    Slider(
-                        value: $settings.customAspectRatio,
-                        in: 0.1...10.0,
-                        step: 0.001
-                    )
-                    .onChange(of: settings.customAspectRatio) { _ in
-                        // When custom aspect ratio is changed, we might want to update other settings
+                    Picker("Aspect Ratio Preset", selection: $settings.aspectRatioPreset) {
+                        ForEach(AppSettings.AspectRatioPreset.allCases, id: \.rawValue) { preset in
+                            Text(preset.rawValue).tag(preset)
+                        }
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    .onChange(of: settings.aspectRatioPreset) { _ in
+                        settings.save()
                     }
                 }
+                // 即時適用のため、カスタム比率やボタンは不要
             }
-            
-            // Current aspect ratio display
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Current Aspect Ratio")
-                    .font(.headline)
-                
-                Text(getCurrentAspectRatio())
-                    .font(.title3)
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(8)
-            }
-            
-            Spacer()
-            
-            // Action buttons
-            HStack {
-                Button("Cancel") {
-                    isPresented = false
-                }
-                .padding()
-                .frame(maxWidth: .infinity)
-                .background(Color(.systemGray5))
-                .cornerRadius(8)
-                
-                Button("Apply") {
-                    settings.save()
-                    isPresented = false
-                }
-                .padding()
-                .frame(maxWidth: .infinity)
-                .background(Color.blue)
-                .foregroundColor(.white)
-                .cornerRadius(8)
-            }
+            .padding(16)
         }
-        .padding()
+        .padding(.horizontal, 16)
     }
     
     private func getCurrentAspectRatio() -> String {
