@@ -5,12 +5,14 @@ import Foundation
 enum ModelAsset: String, CaseIterable {
     case iphone      // "iphone.usdc"
     case iphone15    // "iphone15.usdc"
+    case iphone16    // "iphone16.usdc"
 
     // リソース探索用のベース名（拡張子なし）
     var resourceName: String {
         switch self {
         case .iphone:   return "iphone"
         case .iphone15: return "iphone15"
+        case .iphone16: return "iphone16"
         }
     }
 
@@ -19,6 +21,7 @@ enum ModelAsset: String, CaseIterable {
         switch self {
         case .iphone:   return "iPhone"
         case .iphone15: return "iPhone 15"
+        case .iphone16: return "iPhone 16"
         }
     }
 }
@@ -112,7 +115,8 @@ class ModelManager {
                         
                         // 材質の内容が設定されていない場合
                         if material.diffuse.contents == nil {
-                            if node.name == "screen" {
+                            let nodeNameLower = (node.name ?? "").lowercased()
+                            if nodeNameLower == "screen" || nodeNameLower == "image_display" {
                                 // 画面ノードには黒い材質
                                 material.diffuse.contents = UIColor.black
                                 material.specular.contents = UIColor.white

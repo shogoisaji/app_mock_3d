@@ -71,12 +71,12 @@ struct PreviewAreaView: View {
         node.scale = SCNVector3(0.3, 0.3, 0.3)
         node.eulerAngles = SCNVector3(0, Float.pi - Float.pi/2, 0) // start at 90° towards the final pi orientation
         
-        // Animate over 1 second (scale: 1.0, rotation: Y = pi)
+        // Animate over 1 second (scale: defaultScale, rotation: Y = pi)
         SCNTransaction.begin()
         SCNTransaction.animationDuration = 1.0
         SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeOut)
         
-        node.scale = SCNVector3(1.0, 1.0, 1.0)
+        node.scale = AppState.defaultScale
         node.eulerAngles = SCNVector3(0, Float.pi, 0)
         
         SCNTransaction.commit()
@@ -499,7 +499,7 @@ extension PreviewAreaView {
                     node.position = SCNVector3(0, 0, 0)
                     // Reset to baseline facing: Y = pi (180°)
                     node.eulerAngles = SCNVector3(0, Float.pi, 0)  
-                    node.scale = SCNVector3(1, 1, 1)
+                    node.scale = AppState.defaultScale
                     SCNTransaction.commit()
                 }
             }

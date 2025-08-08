@@ -62,10 +62,13 @@ class AppState: ObservableObject {
     // リセットトリガー（トグルで変化させて監視側で反応）
     @Published var resetTransformToggle: Bool = false
 
+    // デフォルトスケール（少し小さめに表示）
+    static let defaultScale: SCNVector3 = SCNVector3(0.9, 0.9, 0.9)
+
     // 3Dオブジェクトの操作状態（manipulationRoot に適用）
     @Published var objectPosition: SCNVector3 = SCNVector3(0, 0, 0)
     @Published var objectEulerAngles: SCNVector3 = SCNVector3(0, 0, 0)
-    @Published var objectScale: SCNVector3 = SCNVector3(1, 1, 1)
+    @Published var objectScale: SCNVector3 = AppState.defaultScale
 
     // 値の更新ヘルパ
     func setObjectPosition(_ p: SCNVector3) { 
@@ -78,11 +81,11 @@ class AppState: ObservableObject {
         objectScale = s 
     }
 
-    // リセット（0/1/0へ）
+    // リセット（位置/回転は0、スケールは既定値へ）
     func resetObjectTransformState() {
         objectPosition = SCNVector3(0, 0, 0)
         objectEulerAngles = SCNVector3(0, 0, 0)
-        objectScale = SCNVector3(1, 1, 1)
+        objectScale = AppState.defaultScale
     }
     
     func toggleSettings() {
