@@ -6,6 +6,8 @@ struct BottomAppBarView: View {
     var onResetTransform: () -> Void
     // 背景色の双方向バインド（ColorPickerを直接表示）
     @Binding var backgroundColorBinding: Color
+    // 背景を透明に設定するアクション
+    var onTransparentTap: () -> Void
     var onAspectTap: () -> Void
     var onDeviceTap: () -> Void
     // 表示用現在値
@@ -22,7 +24,7 @@ struct BottomAppBarView: View {
             GlassContainer(cornerRadius: 20, intensity: .medium) {
                 HStack(spacing: 12) {
                     // 背景色 ColorPicker（直接表示）
-                    ColorPicker("", selection: $backgroundColorBinding, supportsOpacity: true)
+                    ColorPicker("", selection: $backgroundColorBinding, supportsOpacity: false)
                         .labelsHidden()
                         .frame(width: 36, height: 36)
                         .background(
@@ -43,6 +45,14 @@ struct BottomAppBarView: View {
                             }
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 12))
+                        // 長押し（右クリック）で透明を選択できるようにする
+                        .contextMenu {
+                            Button {
+                                onTransparentTap()
+                            } label: {
+                                Label("Transparent", systemImage: "circle.dotted")
+                            }
+                        }
                         .accessibilityIdentifier("backgroundButton")
 
                     // アスペクト比ボタン（現在の比率で矩形を表示）
@@ -168,6 +178,7 @@ struct BottomAppBarView_Previews: PreviewProvider {
                 onLightingAdjust: {},
                 onResetTransform: {},
                 backgroundColorBinding: .constant(.blue),
+                onTransparentTap: {},
                 onAspectTap: {},
                 onDeviceTap: {},
                 lightingNumber: 3,
@@ -189,6 +200,7 @@ struct BottomAppBarView_Previews: PreviewProvider {
                 onLightingAdjust: {},
                 onResetTransform: {},
                 backgroundColorBinding: .constant(.green),
+                onTransparentTap: {},
                 onAspectTap: {},
                 onDeviceTap: {},
                 lightingNumber: 7,

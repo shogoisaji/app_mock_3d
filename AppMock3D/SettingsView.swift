@@ -89,8 +89,12 @@ struct SettingsView: View {
                                         )
                                     }
                                     .frame(width: 24, height: 24)
-                                } else {
+                                } else if appState.settings.backgroundColor == .gradient {
                                     Text(appState.settings.gradientType.rawValue)
+                                        .font(.system(size: 14, weight: .regular))
+                                        .foregroundColor(.secondary)
+                                } else if appState.settings.backgroundColor == .transparent {
+                                    Text("Transparent")
                                         .font(.system(size: 14, weight: .regular))
                                         .foregroundColor(.secondary)
                                 }
@@ -121,7 +125,7 @@ struct SettingsView: View {
                                             Color(hex: appState.settings.solidColorValue) ?? Color.white
                                         }, set: { color in
                                             appState.settings.solidColorValue = color.toHex()
-                                        }))
+                                        }), supportsOpacity: false)
                                     }
                                     
                                     if appState.settings.backgroundColor == .gradient {
@@ -136,13 +140,13 @@ struct SettingsView: View {
                                             Color(hex: appState.settings.gradientStartColor) ?? .white
                                         }, set: { color in
                                             appState.settings.gradientStartColor = color.toHex()
-                                        }))
+                                        }), supportsOpacity: false)
                                         
                                         ColorPicker("End Color", selection: Binding(get: {
                                             Color(hex: appState.settings.gradientEndColor) ?? .black
                                         }, set: { color in
                                             appState.settings.gradientEndColor = color.toHex()
-                                        }))
+                                        }), supportsOpacity: false)
                                     }
                                 }
                                 .padding(.top, 10)

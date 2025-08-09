@@ -17,8 +17,8 @@ enum ModelAsset: String, CaseIterable {
     // UI表示などに使える表示名
     var displayName: String {
         switch self {
-        case .iphone16: return "iPhone 16"
-        case .iphoneSE: return "iPhone SE"
+        case .iphone16: return "A"
+        case .iphoneSE: return "B"
         }
     }
 }

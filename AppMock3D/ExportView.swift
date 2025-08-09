@@ -198,7 +198,8 @@ struct ExportView: View {
     }
     
     private func saveImageToPhotoLibrary(_ image: UIImage) {
-        photoSaveManager.saveImageToPhotoLibrary(image) { success, error in
+        let preferPNG = imageHasAlpha(image)
+        photoSaveManager.saveImageToPhotoLibrary(image, preferPNG: preferPNG) { success, error in
             self.isExporting = false
             if success {
                 self.alertMessage = "Image saved to photo library."
@@ -206,6 +207,19 @@ struct ExportView: View {
                 self.alertMessage = "Failed to save image: \(error?.localizedDescription ?? "Unknown error")"
             }
             self.showAlert = true
+        }
+    }
+
+    private func imageHasAlpha(_ image: UIImage) -> Bool {
+        guard let cgImage = image.cgImage else { return false }
+        let alpha = cgImage.alphaInfo
+        switch alpha {
+        case .first, .last, .premultipliedFirst, .premultipliedLast:
+            return true
+        case .none, .noneSkipFirst, .noneSkipLast:
+            return false
+        @unknown default:
+            return false
         }
     }
     

@@ -10,25 +10,20 @@ struct AppBarView: View {
 
     var body: some View {
         HStack {
-            // Left side: Hamburger Menu Button
-            GlassContainer(cornerRadius: 20, intensity: .medium) {
-                GlassButton(
-                    symbol: "line.3.horizontal",
-                    action: onMenu,
-                    accessibilityId: "menu",
-                    size: 36,
-                    cornerRadius: 12
-                )
-                .padding(.horizontal, 16)
-            }
-            .frame(height: 60)
-            .fixedSize(horizontal: true, vertical: false)
-            
             Spacer(minLength: 0)
 
-            // Right side: Existing buttons
+            // Right side: App Bar (menu on the left edge within this group)
             GlassContainer(cornerRadius: 20, intensity: .medium) {
                 HStack(spacing: 12) {
+                    // Moved Hamburger Menu Button here
+                    GlassButton(
+                        symbol: "line.3.horizontal",
+                        action: onMenu,
+                        accessibilityId: "menu",
+                        size: 36,
+                        cornerRadius: 12
+                    )
+                    
                     GlassButton(
                         symbol: "photo",
                         action: onImageSelect,

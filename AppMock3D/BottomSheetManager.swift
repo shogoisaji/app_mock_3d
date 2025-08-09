@@ -8,6 +8,7 @@ struct BottomSheetManager<Content: View>: View {
     var bottomSpacing: CGFloat = 12
     
     @State private var dragOffset: CGFloat = 0
+    @GestureState private var gestureTranslation: CGFloat = 0
     
     var body: some View {
         GeometryReader { geometry in
@@ -17,7 +18,8 @@ struct BottomSheetManager<Content: View>: View {
                     Color.black
                         .opacity(0.3)
                         .onTapGesture {
-                            isOpen = false
+                            // 描画フェーズ外で反映
+                            DispatchQueue.main.async { isOpen = false }
                         }
                         .edgesIgnoringSafeArea(.all)
                 }
@@ -46,17 +48,19 @@ struct BottomSheetManager<Content: View>: View {
                         // .background(Color(.secondarySystemBackground))
                         .cornerRadius(20, corners: [.topLeft, .topRight])
                         .shadow(radius: 10)
-                        .offset(y: dragOffset)
+                        .offset(y: dragOffset + max(0, gestureTranslation))
                         .gesture(
                             DragGesture()
-                                .onChanged { value in
-                                    dragOffset = value.translation.height > 0 ? value.translation.height : 0
+                                .updating($gestureTranslation) { value, state, _ in
+                                    state = value.translation.height
                                 }
                                 .onEnded { value in
                                     if value.translation.height > 100 {
-                                        isOpen = false
+                                        // 描画フェーズ外で反映
+                                        DispatchQueue.main.async { isOpen = false }
                                     }
-                                    dragOffset = 0
+                                    // リセットは次フレームへ
+                                    DispatchQueue.main.async { dragOffset = 0 }
                                 }
                         )
                         .animation(.easeInOut(duration: 0.3), value: dragOffset)

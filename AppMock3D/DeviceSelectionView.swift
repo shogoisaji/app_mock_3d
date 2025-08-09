@@ -7,17 +7,9 @@ struct DeviceSelectionView: View {
     var body: some View {
         GlassContainer(cornerRadius: 20, intensity: .medium) {
             VStack(spacing: 16) {
-                HStack {
-                    Text("Select Device Model")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                    Spacer()
-                }
-                .padding(.horizontal, 8)
-                
-                // Device model selection (horizontal scroll with image + name)
+// Device model selection (horizontal scroll with image + name)
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Device Model")
+                    Text("Device")
                         .font(.headline)
 
                     ZStack {

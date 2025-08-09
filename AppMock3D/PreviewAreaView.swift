@@ -1,6 +1,8 @@
 import SwiftUI
 import SceneKit
 import UIKit
+import os
+import Darwin
 
 // MARK: - PreferenceKey
 struct PreviewFramePreferenceKey: PreferenceKey {
@@ -81,6 +83,52 @@ struct PreviewAreaView: View {
         node.eulerAngles = SCNVector3(0, Float.pi, 0)
         
         SCNTransaction.commit()
+    }
+    
+    // Ensure there are named lights in the scene used by lighting controls.
+    // Creates a key directional light ("mainLight") and a soft omni fill ("fillLight") if missing.
+    private func ensureDefaultLights() {
+        // If a main light does not exist, create one
+        if currentScene.rootNode.childNode(withName: "mainLight", recursively: true) == nil {
+            let mainLight = SCNLight()
+            mainLight.type = .directional
+            mainLight.intensity = 450
+            mainLight.temperature = 6500
+            mainLight.castsShadow = true
+            mainLight.shadowMode = .deferred
+            mainLight.shadowRadius = 8
+            mainLight.shadowColor = UIColor.black.withAlphaComponent(0.5)
+
+            let mainNode = SCNNode()
+            mainNode.name = "mainLight"
+            mainNode.light = mainLight
+            // Default position/direction roughly from front-top-right
+            mainNode.position = SCNVector3(4, 6, 6)
+            mainNode.eulerAngles = SCNVector3(-Float.pi/4, -Float.pi/6, 0)
+            currentScene.rootNode.addChildNode(mainNode)
+        }
+
+        // If a fill light does not exist, create one
+        if currentScene.rootNode.childNode(withName: "fillLight", recursively: true) == nil {
+            let fillLight = SCNLight()
+            fillLight.type = .omni
+            fillLight.intensity = 100
+            fillLight.temperature = 6500
+            fillLight.castsShadow = false
+
+            let fillNode = SCNNode()
+            fillNode.name = "fillLight"
+            fillNode.light = fillLight
+            fillNode.position = SCNVector3(-3, 2.5, 4.5)
+            fillNode.eulerAngles = SCNVector3(-Float.pi/8, Float.pi/9, 0)
+            currentScene.rootNode.addChildNode(fillNode)
+        }
+
+        // Ensure some environment lighting to prevent pitch black in PBR
+        if currentScene.lightingEnvironment.contents == nil {
+            // Use a neutral color as a simple environment; app may later set a cube map
+            currentScene.lightingEnvironment.intensity = 1.0
+        }
     }
     
     var body: some View {
@@ -194,16 +242,26 @@ private struct SceneView: View {
     let previewHeight: CGFloat
     
     var body: some View {
-        SnapshotHostingView(
-            scene: currentScene,
-            previewSize: CGSize(width: previewWidth - 24, height: previewHeight),
-            shouldTakeSnapshot: $shouldTakeSnapshot,
-            onCameraUpdate: { transform in
-                onCameraUpdated?(transform)
-            },
-            onSnapshotRequested: onSnapshotRequested,
-            appState: appState
-        )
+        ZStack {
+            if appState.settings.backgroundColor == .transparent {
+                CheckerboardBackground(lightColor: Color(white: 0.92),
+                                       darkColor: Color(white: 0.82),
+                                       squareSize: 12)
+                    .frame(width: previewWidth - 24, height: previewHeight)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .allowsHitTesting(false)
+            }
+            SnapshotHostingView(
+                scene: currentScene,
+                previewSize: CGSize(width: previewWidth - 24, height: previewHeight),
+                shouldTakeSnapshot: $shouldTakeSnapshot,
+                onCameraUpdate: { transform in
+                    onCameraUpdated?(transform)
+                },
+                onSnapshotRequested: onSnapshotRequested,
+                appState: appState
+            )
+        }
         .frame(width: previewWidth - 24, height: previewHeight)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .background(PreferenceBackground())
@@ -289,8 +347,51 @@ private struct PreviewModifiersViewModifier: ViewModifier {
     let currentScene: SCNScene
     let captureInitialTransforms: () -> Void
     
+    // Local helper: ensure lights exist in the provided scene
+    private func ensureDefaultLights(in scene: SCNScene) {
+        if scene.rootNode.childNode(withName: "mainLight", recursively: true) == nil {
+            let mainLight = SCNLight()
+            mainLight.type = .directional
+            mainLight.intensity = 450
+            mainLight.temperature = 6500
+            mainLight.castsShadow = true
+            mainLight.shadowMode = .deferred
+            mainLight.shadowRadius = 8
+            mainLight.shadowColor = UIColor.black.withAlphaComponent(0.5)
+
+            let mainNode = SCNNode()
+            mainNode.name = "mainLight"
+            mainNode.light = mainLight
+            mainNode.position = SCNVector3(4, 6, 6)
+            mainNode.eulerAngles = SCNVector3(-Float.pi/4, -Float.pi/6, 0)
+            scene.rootNode.addChildNode(mainNode)
+        }
+        if scene.rootNode.childNode(withName: "fillLight", recursively: true) == nil {
+            let fillLight = SCNLight()
+            fillLight.type = .omni
+            fillLight.intensity = 100
+            fillLight.temperature = 6500
+            fillLight.castsShadow = false
+
+            let fillNode = SCNNode()
+            fillNode.name = "fillLight"
+            fillNode.light = fillLight
+            fillNode.position = SCNVector3(-3, 2.5, 4.5)
+            fillNode.eulerAngles = SCNVector3(-Float.pi/8, Float.pi/9, 0)
+            scene.rootNode.addChildNode(fillNode)
+        }
+        if scene.lightingEnvironment.contents == nil {
+            scene.lightingEnvironment.intensity = 1.0
+        }
+    }
+    
     func body(content: Content) -> some View {
-        content
+        // Break down complex expressions to help the compiler
+        let positionKey = appState.objectPosition.x + appState.objectPosition.y + appState.objectPosition.z
+        let eulerKey = appState.objectEulerAngles.x + appState.objectEulerAngles.y + appState.objectEulerAngles.z
+        let scaleKey = appState.objectScale.x + appState.objectScale.y + appState.objectScale.z
+
+        return content
             .onChange(of: imagePickerManager.selectedImage) { _, newImage in
                 updateSceneWithImage(newImage, CGSize(width: 375, height: 667))
             }
@@ -306,16 +407,18 @@ private struct PreviewModifiersViewModifier: ViewModifier {
             .onChange(of: appState.resetTransformToggle) { _ in
                 resetSceneTransform()
             }
-            .onChange(of: appState.objectPosition.x + appState.objectPosition.y + appState.objectPosition.z) { _, _ in
+            .onChange(of: positionKey) { _, _ in
                 applyAppStateTransform()
             }
-            .onChange(of: appState.objectEulerAngles.x + appState.objectEulerAngles.y + appState.objectEulerAngles.z) { _, _ in
+            .onChange(of: eulerKey) { _, _ in
                 applyAppStateTransform()
             }
-            .onChange(of: appState.objectScale.x + appState.objectScale.y + appState.objectScale.z) { _, _ in
+            .onChange(of: scaleKey) { _, _ in
                 applyAppStateTransform()
             }
             .onAppear {
+                // Ensure the scene has default lights so lighting controls work and the model is not black
+                ensureDefaultLights(in: currentScene)
                 captureInitialTransforms()
                 applyAppStateTransform()
                 onSceneUpdated?(currentScene)
@@ -846,7 +949,11 @@ extension PreviewAreaView {
     private func updateSceneBackground(_ settings: AppSettings, size: CGSize) {
         switch settings.backgroundColor {
         case .solidColor:
-            currentScene.background.contents = UIColor(Color(hex: settings.solidColorValue) ?? .white)
+            if let color = Color(hex: settings.solidColorValue) {
+                currentScene.background.contents = UIColor(color)
+            } else {
+                currentScene.background.contents = UIColor.white
+            }
         case .gradient:
             let gradientLayer = CAGradientLayer()
             gradientLayer.frame = CGRect(origin: .zero, size: size)
@@ -871,251 +978,6 @@ extension PreviewAreaView {
             currentScene.background.contents = image
         case .transparent:
             currentScene.background.contents = UIColor.clear
-        }
-    }
-    
-    private static func getMemoryUsage() -> Float {
-        var info = mach_task_basic_info()
-        var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size)/4
-        
-        let kerr: kern_return_t = withUnsafeMutablePointer(to: &info) {
-            $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
-                task_info(mach_task_self_,
-                         task_flavor_t(MACH_TASK_BASIC_INFO),
-                         $0,
-                         &count)
-            }
-        }
-        
-        if kerr == KERN_SUCCESS {
-            let usedMemory = Float(info.resident_size) / 1024.0 / 1024.0 // MB
-            let totalMemory = Float(ProcessInfo.processInfo.physicalMemory) / 1024.0 / 1024.0 / 1024.0 // GB
-            return usedMemory / (totalMemory * 1024.0) // 使用率を返す
-        } else {
-            return 0.0
-        }
-    }
-    
-    // Apply the transform held in AppState to manipulationRoot
-    private func applyAppStateTransform() {
-        // アピアアニメーション中はスナップ上書きを避ける
-        if isAppearing { return }
-        // Get the root for manipulation (create if it doesn't exist)
-        let root = ensureManipulationRoot()
-        
-        
-        SCNTransaction.begin()
-        root.position = appState.objectPosition
-        // Apply baseline Y=pi so the model faces forward initially, while keeping appState at 0-based rotation
-        root.eulerAngles = SCNVector3(
-            appState.objectEulerAngles.x,
-            appState.objectEulerAngles.y + Float.pi,
-            appState.objectEulerAngles.z
-        )
-        root.scale = appState.objectScale
-        SCNTransaction.commit()
-        
-    }
-
-    // Returns manipulationRoot (if it doesn't exist, create it by hanging everything except lights/cameras)
-    @discardableResult
-    private func ensureManipulationRoot() -> SCNNode {
-        if let node = currentScene.rootNode.childNode(withName: "manipulationRoot", recursively: false) {
-            return node
-        }
-        // Create a new one and reparent everything except lights and cameras
-        let newRoot = SCNNode()
-        newRoot.name = "manipulationRoot"
-        currentScene.rootNode.addChildNode(newRoot)
-
-        // Scan the current direct children and move everything except lights/cameras
-        let children = currentScene.rootNode.childNodes.filter {
-            let lname = ($0.name ?? "").lowercased()
-            return lname != "manipulationroot" && !lname.contains("light") && !lname.contains("camera")
-        }
-        
-        for child in children {
-            // Reparent while maintaining world coordinates
-            let worldTransform = child.worldTransform
-            child.removeFromParentNode()
-            newRoot.addChildNode(child)
-            child.transform = newRoot.convertTransform(worldTransform, from: nil)
-        }
-        return newRoot
-    }
-}
-
-/// A view that hosts an SCNView on SwiftUI and allows taking a snapshot of what is visible within the white frame size
-private struct SnapshotHostingView: UIViewRepresentable {
-    var scene: SCNScene
-    var previewSize: CGSize
-    @Binding var shouldTakeSnapshot: Bool
-    // Added: Callback to notify of camera posture updates
-    var onCameraUpdate: ((SCNMatrix4) -> Void)?
-    // Added: Callback to receive snapshot requests
-    var onSnapshotRequested: ((UIImage?) -> Void)?
-    // Property to pass AppState
-    var appState: AppState
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(onCameraUpdate: onCameraUpdate, onSnapshotRequested: onSnapshotRequested)
-    }
-    
-    func makeUIView(context: Context) -> SCNView {
-        let scnView = SCNView(frame: CGRect(origin: .zero, size: previewSize))
-        scnView.translatesAutoresizingMaskIntoConstraints = false
-        scnView.scene = scene
-        // Since the background color is managed by the scene, do not make the SCNView background transparent
-        scnView.backgroundColor = .black
-        // Changed to object manipulation (not camera manipulation)
-        scnView.allowsCameraControl = false
-        
-        // Set AppState in Coordinator and set up gestures
-        context.coordinator.appState = appState
-        context.coordinator.setupObjectManipulationGestures(for: scnView)
-        scnView.showsStatistics = false
-        scnView.antialiasingMode = .multisampling4X
-        scnView.preferredFramesPerSecond = 60
-        scnView.insetsLayoutMarginsFromSafeArea = false
-        scnView.contentMode = .scaleAspectFill
-        scnView.layer.masksToBounds = true
-        
-        // Set the delegate to detect camera updates
-        scnView.delegate = context.coordinator
-        
-        // Pass a reference to the SCNView to the Coordinator
-        context.coordinator.scnView = scnView
-        
-        // Lighting/camera setup (consistent with ContentView.PreviewView)
-        setupLighting(for: scene)
-        setupCamera(for: scene)
-        
-        // Apply initial background settings
-        updateSceneBackground(scene: scene, settings: appState.settings, size: previewSize)
-        
-        return scnView
-    }
-    
-    func updateUIView(_ uiView: SCNView, context: Context) {
-        uiView.scene = scene
-        uiView.delegate = context.coordinator
-        uiView.insetsLayoutMarginsFromSafeArea = false
-        uiView.setNeedsLayout()
-        uiView.layoutIfNeeded()
-        
-        // Update the SCNView reference and AppState in the Coordinator
-        context.coordinator.scnView = uiView
-        context.coordinator.appState = appState
-        
-        // When the scene instance changes, ensure lighting and camera exist on the new scene
-        setupLighting(for: scene)
-        setupCamera(for: scene)
-        
-        // Update background settings
-        updateSceneBackground(scene: scene, settings: appState.settings, size: previewSize)
-                
-        // If a snapshot is requested
-        if shouldTakeSnapshot {
-            context.coordinator.takeSnapshot()
-            // Reset the flag
-            DispatchQueue.main.async {
-                shouldTakeSnapshot = false
-            }
-        }
-    }
-    
-    // Snapshot the current appearance as is within the white frame size
-    // Note: Do not call makeUIView of UIViewRepresentable directly, but use the snapshot of the currently displayed SCNView
-    func snapshotImage(from uiView: SCNView) -> UIImage? {
-        // The snapshot() of SCNView reflects the current camera state and drawing content
-        let raw = uiView.snapshot()
-        // Since the frame is already set with previewSize, it can be returned as is
-        return raw
-    }
-    
-    private func setupLighting(for scene: SCNScene) {
-        if scene.rootNode.childNode(withName: "mainLight", recursively: false) != nil {
-            return
-        }
-        let lightNode = SCNNode()
-        lightNode.name = "mainLight"
-        lightNode.light = SCNLight()
-        lightNode.light!.type = .directional
-        lightNode.light!.color = UIColor.white
-        lightNode.light!.intensity = 600
-        lightNode.position = SCNVector3(x: Float(0), y: Float(10), z: Float(10))
-        lightNode.eulerAngles = SCNVector3(x: -Float.pi/4, y: Float(0), z: Float(0))
-        scene.rootNode.addChildNode(lightNode)
-        
-        let ambientLightNode = SCNNode()
-        ambientLightNode.name = "ambientLight"
-        ambientLightNode.light = SCNLight()
-        ambientLightNode.light!.type = .ambient
-        ambientLightNode.light!.color = UIColor(white: 0.3, alpha: 1.0)
-        ambientLightNode.light!.intensity = 20
-        scene.rootNode.addChildNode(ambientLightNode)
-        
-        let fillLightNode = SCNNode()
-        fillLightNode.name = "fillLight"
-        fillLightNode.light = SCNLight()
-        fillLightNode.light!.type = .omni
-        fillLightNode.light!.color = UIColor(white: 0.6, alpha: 1.0)
-        fillLightNode.light!.intensity = 100
-        // Diffuse feeling (make the attenuation gentle to feel like a large light source)
-        fillLightNode.light!.attenuationStartDistance = 8.0
-        fillLightNode.light!.attenuationEndDistance = 22.0
-        fillLightNode.light!.attenuationFalloffExponent = 1.0
-        fillLightNode.position = SCNVector3(x: -5, y: 5, z: 5)
-        scene.rootNode.addChildNode(fillLightNode)
-        scene.lightingEnvironment.intensity = 1.0
-    }
-    
-    private func setupCamera(for scene: SCNScene) {
-        let cameraNode = scene.rootNode.childNode(withName: "camera", recursively: true) ?? {
-            let node = SCNNode()
-            node.name = "camera"
-            node.camera = SCNCamera()
-            scene.rootNode.addChildNode(node)
-            return node
-        }()
-        if let camera = cameraNode.camera {
-            camera.fieldOfView = 60
-            camera.automaticallyAdjustsZRange = true
-            camera.zNear = 0.1
-            camera.zFar = 100
-        }
-        cameraNode.position = SCNVector3(x: 0, y: 0, z: 5)
-        cameraNode.look(at: SCNVector3(x: 0, y: 0, z: 0))
-    }
-    
-    private func updateSceneBackground(scene: SCNScene, settings: AppSettings, size: CGSize) {
-        switch settings.backgroundColor {
-        case .solidColor:
-            scene.background.contents = UIColor(Color(hex: settings.solidColorValue) ?? .white)
-        case .gradient:
-            let gradientLayer = CAGradientLayer()
-            gradientLayer.frame = CGRect(origin: .zero, size: size)
-            gradientLayer.colors = [
-                UIColor(Color(hex: settings.gradientStartColor) ?? .white).cgColor,
-                UIColor(Color(hex: settings.gradientEndColor) ?? .black).cgColor
-            ]
-            if settings.gradientType == .linear {
-                gradientLayer.startPoint = CGPoint(x: 0.5, y: 0)
-                gradientLayer.endPoint = CGPoint(x: 0.5, y: 1)
-            } else {
-                gradientLayer.type = .radial
-                gradientLayer.startPoint = CGPoint(x: 0.5, y: 0.5)
-                gradientLayer.endPoint = CGPoint(x: 1, y: 1)
-            }
-            
-            UIGraphicsBeginImageContext(gradientLayer.bounds.size)
-            gradientLayer.render(in: UIGraphicsGetCurrentContext()!)
-            let image = UIGraphicsGetImageFromCurrentImageContext()
-            UIGraphicsEndImageContext()
-            
-            scene.background.contents = image
-        case .transparent:
-            scene.background.contents = UIColor.clear
         }
     }
 
@@ -1236,6 +1098,138 @@ private struct SnapshotHostingView: UIViewRepresentable {
                 self.onSnapshotRequested?(snapshot)
             }
         }
+    }
+}
+
+// MARK: - SnapshotHostingView (SCNView wrapper)
+struct SnapshotHostingView: UIViewRepresentable {
+    typealias UIViewType = SCNView
+
+    var scene: SCNScene
+    var previewSize: CGSize
+    @Binding var shouldTakeSnapshot: Bool
+    var onCameraUpdate: ((SCNMatrix4) -> Void)?
+    var onSnapshotRequested: ((UIImage?) -> Void)?
+    var appState: AppState
+
+    func makeCoordinator() -> PreviewAreaView.Coordinator {
+        PreviewAreaView.Coordinator(onCameraUpdate: onCameraUpdate, onSnapshotRequested: onSnapshotRequested)
+    }
+
+    func makeUIView(context: Context) -> SCNView {
+        let scnView = SCNView(frame: CGRect(origin: .zero, size: previewSize))
+        scnView.scene = scene
+        scnView.backgroundColor = .clear
+        scnView.allowsCameraControl = false
+        // Fallback: enable default lighting to avoid completely dark scene when no lights exist
+        scnView.autoenablesDefaultLighting = true
+        scnView.isPlaying = true
+        scnView.delegate = context.coordinator
+
+        // Wire coordinator references
+        context.coordinator.scnView = scnView
+        context.coordinator.appState = appState
+        context.coordinator.setupObjectManipulationGestures(for: scnView)
+
+        return scnView
+    }
+
+    func updateUIView(_ uiView: SCNView, context: Context) {
+        // Keep scene in sync if it changed upstream
+        if uiView.scene !== scene {
+            uiView.scene = scene
+        }
+
+        // Ensure size matches the preview container
+        let desired = CGRect(origin: .zero, size: previewSize)
+        if uiView.frame.size != desired.size {
+            uiView.frame = desired
+        }
+
+        // Forward updated appState reference
+        context.coordinator.appState = appState
+
+        // Snapshot trigger
+        if shouldTakeSnapshot {
+            context.coordinator.takeSnapshot()
+            // Reset the trigger on the next runloop to avoid state mutation during update cycle
+            DispatchQueue.main.async {
+                self.shouldTakeSnapshot = false
+            }
+        }
+    }
+}
+
+// MARK: - Memory Utility
+extension PreviewAreaView {
+    /// Returns the current app's memory usage as a fraction of total physical memory (0.0 ... 1.0).
+    static func getMemoryUsage() -> Double {
+        // Total physical memory
+        let total = Double(ProcessInfo.processInfo.physicalMemory)
+
+        // Get task (app) memory via mach task_info
+        var info = task_vm_info_data_t()
+        var count = mach_msg_type_number_t(MemoryLayout<task_vm_info_data_t>.size) / 4
+        let kerr: kern_return_t = withUnsafeMutablePointer(to: &info) { infoPtr in
+            infoPtr.withMemoryRebound(to: integer_t.self, capacity: Int(count)) { intPtr in
+                task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), intPtr, &count)
+            }
+        }
+
+        guard kerr == KERN_SUCCESS else { return 0.0 }
+
+        // phys_footprint approximates the real memory used by the app
+        let used = Double(info.phys_footprint)
+        if total <= 0 { return 0.0 }
+        return max(0.0, min(1.0, used / total))
+    }
+}
+
+extension PreviewAreaView {
+    // Apply the transform held in AppState to manipulationRoot
+    private func applyAppStateTransform() {
+        // アピアアニメーション中はスナップ上書きを避ける
+        if isAppearing { return }
+        // Get the root for manipulation (create if it doesn't exist)
+        let root = ensureManipulationRoot()
+        
+        SCNTransaction.begin()
+        root.position = appState.objectPosition
+        // Apply baseline Y=pi so the model faces forward initially, while keeping appState at 0-based rotation
+        root.eulerAngles = SCNVector3(
+            appState.objectEulerAngles.x,
+            appState.objectEulerAngles.y + Float.pi,
+            appState.objectEulerAngles.z
+        )
+        root.scale = appState.objectScale
+        SCNTransaction.commit()
+    }
+    
+    // Returns manipulationRoot (if it doesn't exist, create it by hanging everything except lights/cameras)
+    @discardableResult
+    private func ensureManipulationRoot() -> SCNNode {
+        if let node = currentScene.rootNode.childNode(withName: "manipulationRoot", recursively: false) {
+            return node
+        }
+        // Create a new one and reparent everything except lights and cameras
+        let newRoot = SCNNode()
+        newRoot.name = "manipulationRoot"
+        currentScene.rootNode.addChildNode(newRoot)
+
+        // Scan the current direct children and move everything except lights/cameras
+        let children = currentScene.rootNode.childNodes.filter {
+            let lname = ($0.name ?? "").lowercased()
+            return lname != "manipulationroot" && !lname.contains("light") && !lname.contains("camera")
+        }
+        
+        for child in children {
+            // Reparent while maintaining world coordinates
+            let worldTransform = child.worldTransform
+            child.removeFromParentNode()
+            newRoot.addChildNode(child)
+            child.transform = newRoot.convertTransform(worldTransform, from: nil)
+        }
+        return newRoot
     }
 }
 

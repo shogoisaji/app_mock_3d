@@ -109,6 +109,13 @@ struct MainView: View {
                                 appState.settings = s
                                 appState.settings.save()
                             }),
+                            onTransparentTap: {
+                                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                                var s = appState.settings
+                                s.backgroundColor = .transparent
+                                appState.settings = s
+                                appState.settings.save()
+                            },
                             onAspectTap: {
                                 appState.toggleAspectSheet()
                             },

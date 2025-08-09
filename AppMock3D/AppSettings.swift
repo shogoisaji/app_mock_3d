@@ -16,7 +16,7 @@ struct AppSettings: Codable, Equatable {
     
     // 背景設定
     var backgroundColor: BackgroundColorSetting = .transparent
-    var solidColorValue: String = "#303135"
+    var solidColorValue: String = "#303135FF"
     var gradientType: GradientType = .linear
     var gradientStartColor: String = "#FFFFFF"
     var gradientEndColor: String = "#000000"
@@ -45,14 +45,14 @@ struct AppSettings: Codable, Equatable {
     }
     
     enum DeviceModel: String, CaseIterable, Codable {
-        case iPhone16 = "iPhone 16"
-        case iPhoneSE = "iPhone SE"
+        case iPhone16 = "A"
+        case iPhoneSE = "B"
 
         // 現在のモデルの短縮ラベル（例: iPhone 15 -> "15"）
         var label: String {
             switch self {
-            case .iPhone16: return "16"
-            case .iPhoneSE: return "SE"
+            case .iPhone16: return "A"
+            case .iPhoneSE: return "B"
             }
         }
     }

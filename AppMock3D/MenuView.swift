@@ -12,31 +12,15 @@ struct MenuView: View {
             
             ScrollView {
                 VStack(spacing: 20) {
-                    // App info section with glass effect
-                    GlassContainer(cornerRadius: 16, intensity: .subtle) {
-                        VStack(spacing: 8) {
-                            Image(systemName: "app.badge")
-                                .font(.system(size: 32, weight: .semibold))
-                                .foregroundColor(.accentColor)
-                            
-                            Text("AppMock3D")
-                                .font(.system(size: 18, weight: .semibold, design: .rounded))
-                                .foregroundColor(.primary)
-                            
-                            Text("3D Model Mockup Generator")
-                                .font(.system(size: 14, weight: .regular))
-                                .foregroundColor(.secondary)
-                        }
-                        .padding()
-                    }
+                    
                     
                     // Menu Items with glass effect
                     GlassContainer(cornerRadius: 16, intensity: .subtle) {
                         VStack(spacing: 0) {
                             GlassMenuItemButton(
                                 icon: "doc.text",
-                                title: "プライバシーポリシー",
-                                subtitle: "Privacy Policy",
+                                title: "Privacy Policy",
+                                subtitle: "",
                                 action: {},
                                 accessibilityId: "privacyPolicy"
                             )
@@ -45,8 +29,8 @@ struct MenuView: View {
                             
                             GlassMenuItemButton(
                                 icon: "doc.plaintext",
-                                title: "利用規約",
-                                subtitle: "Terms of Service",
+                                title: "Terms of Service",
+                                subtitle: "",
                                 action: {},
                                 accessibilityId: "termsOfService"
                             )
@@ -55,8 +39,8 @@ struct MenuView: View {
                             
                             GlassMenuItemButton(
                                 icon: "envelope",
-                                title: "お問い合わせ",
-                                subtitle: "Contact",
+                                title: "Contact",
+                                subtitle: "",
                                 action: { openMail() },
                                 accessibilityId: "contact"
                             )
@@ -65,21 +49,14 @@ struct MenuView: View {
                             
                             GlassMenuItemButton(
                                 icon: "info.circle",
-                                title: "バージョン",
-                                subtitle: "Version \(getAppVersion())",
+                                title: "Version",
+                                subtitle: getAppVersion(),
                                 action: {},
-                                accessibilityId: "version"
+                                accessibilityId: "version",
+                                showChevron: false
                             )
                             
-                            Divider().padding(.horizontal, 20)
                             
-                            GlassMenuItemButton(
-                                icon: "globe",
-                                title: "言語設定",
-                                subtitle: "Language Settings",
-                                action: {},
-                                accessibilityId: "languageSettings"
-                            )
                         }
                     }
                 }
@@ -113,8 +90,25 @@ private struct GlassMenuItemButton: View {
     let subtitle: String
     let action: () -> Void
     let accessibilityId: String
-    
+    let showChevron: Bool
+
     @State private var isPressed = false
+    
+    init(
+        icon: String,
+        title: String,
+        subtitle: String,
+        action: @escaping () -> Void,
+        accessibilityId: String,
+        showChevron: Bool = true
+    ) {
+        self.icon = icon
+        self.title = title
+        self.subtitle = subtitle
+        self.action = action
+        self.accessibilityId = accessibilityId
+        self.showChevron = showChevron
+    }
     
     var body: some View {
         Button(action: {
@@ -151,10 +145,12 @@ private struct GlassMenuItemButton: View {
                 
                 Spacer()
                 
-                // Arrow
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.secondary)
+                // Arrow (optional)
+                if showChevron {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.secondary)
+                }
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)

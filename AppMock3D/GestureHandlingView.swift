@@ -18,7 +18,7 @@ struct GestureHandlingView: UIViewRepresentable {
         // Disable default camera controls to use custom gestures
         scnView.allowsCameraControl = false
         scnView.showsStatistics = true
-        scnView.backgroundColor = UIColor.systemBackground
+        scnView.backgroundColor = UIColor.clear
         
         // Add pan gesture for rotation (1 finger) and translation (2 fingers)
         let panGesture = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePan(_:)))

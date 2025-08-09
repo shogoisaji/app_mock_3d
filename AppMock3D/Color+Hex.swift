@@ -10,14 +10,31 @@ extension Color {
         var rgb: UInt64 = 0
         Scanner(string: hexSanitized).scanHexInt64(&rgb)
         
-        let red = Double((rgb >> 16) & 0xFF) / 255.0
-        let green = Double((rgb >> 8) & 0xFF) / 255.0
-        let blue = Double(rgb & 0xFF) / 255.0
+        let red: Double
+        let green: Double  
+        let blue: Double
+        let alpha: Double
         
-        self.init(red: red, green: green, blue: blue)
+        if hexSanitized.count == 8 {
+            // RRGGBBAA format
+            red = Double((rgb >> 24) & 0xFF) / 255.0
+            green = Double((rgb >> 16) & 0xFF) / 255.0
+            blue = Double((rgb >> 8) & 0xFF) / 255.0
+            alpha = Double(rgb & 0xFF) / 255.0
+        } else if hexSanitized.count == 6 {
+            // RRGGBB format (no alpha)
+            red = Double((rgb >> 16) & 0xFF) / 255.0
+            green = Double((rgb >> 8) & 0xFF) / 255.0
+            blue = Double(rgb & 0xFF) / 255.0
+            alpha = 1.0
+        } else {
+            return nil
+        }
+        
+        self.init(red: red, green: green, blue: blue, opacity: alpha)
     }
     
-    func toHex() -> String {
+    func toHex(includeAlpha: Bool = true) -> String {
         let uicolor = UIColor(self)
         var red: CGFloat = 0
         var green: CGFloat = 0
@@ -26,10 +43,16 @@ extension Color {
 
         guard uicolor.getRed(&red, green: &green, blue: &blue, alpha: &alpha) else {
             // Fallback for non-RGB colors
-            return "#000000"
+            return includeAlpha ? "#000000FF" : "#000000"
         }
 
-        return String(format: "#%02X%02X%02X", Int(red * 255), Int(green * 255), Int(blue * 255))
+        if includeAlpha {
+            return String(format: "#%02X%02X%02X%02X", 
+                         Int(red * 255), Int(green * 255), Int(blue * 255), Int(alpha * 255))
+        } else {
+            return String(format: "#%02X%02X%02X", 
+                         Int(red * 255), Int(green * 255), Int(blue * 255))
+        }
     }
 }
 // アプリのテーマ定義

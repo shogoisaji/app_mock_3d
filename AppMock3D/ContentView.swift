@@ -24,6 +24,7 @@ struct ContentView: View {
     @State private var showSaveSuccessAlert = false
     @State private var showSaveErrorAlert = false
     @State private var showingExportView = false
+    @State private var showingSaveDialog = false
     // Added: Hold the camera matrix of the preview
     @State private var latestCameraTransform: SCNMatrix4?
     // Added: Hold the snapshot image of the preview
@@ -104,34 +105,12 @@ struct ContentView: View {
         }
         .onChange(of: currentPreviewSnapshot) { _, newSnapshot in
             if newSnapshot != nil {
-                showingExportView = true
+                showingSaveDialog = true
             }
         }
-        .sheet(isPresented: $showingExportView) {
-            // Use the snapshot image if it exists
-            if let snapshot = currentPreviewSnapshot {
-                ExportView(renderingEngine: nil,
-                           photoSaveManager: PhotoSaveManager(),
-                           cameraTransform: $latestCameraTransform,
-                           aspectRatio: appState.aspectRatio,
-                           previewSnapshot: snapshot)
-            } else if let exportScene = latestSceneForExport ?? sceneView {
-                // Fallback: Use RenderingEngine
-                let renderingEngine = RenderingEngine(scene: exportScene)
-                ExportView(renderingEngine: renderingEngine,
-                           photoSaveManager: PhotoSaveManager(),
-                           cameraTransform: $latestCameraTransform,
-                           aspectRatio: appState.aspectRatio,
-                           previewSnapshot: nil)
-            } else {
-                // Last resort: Create a new scene and export
-                let fallbackScene = ModelManager.shared.loadModel(appState.currentDevice) ?? SCNScene()
-                let renderingEngine = RenderingEngine(scene: fallbackScene)
-                ExportView(renderingEngine: renderingEngine,
-                           photoSaveManager: PhotoSaveManager(),
-                           cameraTransform: $latestCameraTransform,
-                           aspectRatio: appState.aspectRatio,
-                           previewSnapshot: nil)
+        .onChange(of: showingSaveDialog) { _, shouldShow in
+            if shouldShow {
+                showSystemSaveDialog()
             }
         }
         .alert("Permission Required", isPresented: $showingPermissionAlert) {
@@ -173,6 +152,19 @@ struct ContentView: View {
             appState.deviceReloadToken += 1
             // 新しいデバイス表示に向けて transform を既定状態へ（アニメの終点と一致させる）
             appState.resetObjectTransformState()
+            
+            // 選択された画像がある場合、新しいシーンに再適用
+            if let selectedImage = imagePickerManager.selectedImage {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    // TextureManagerを使って新しいシーンに画像を適用
+                    if let updatedScene = TextureManager.shared.applyTextureToModel(scene, image: selectedImage) {
+                        self.sceneView = updatedScene
+                        self.latestSceneForExport = updatedScene
+                        self.appState.setImageApplied(true)
+                        print("[DeviceSwitch] Reapplied selected image to new device model")
+                    }
+                }
+            }
         }
     }
     
@@ -207,12 +199,84 @@ struct ContentView: View {
         }
     }
     
+    
+    
+    private func showSystemSaveDialog() {
+        showingSaveDialog = false // Reset the state
+        
+        let alert = UIAlertController(title: nil, message: "Do you want to save?", preferredStyle: .alert)
+        
+        alert.addAction(UIAlertAction(title: "Save", style: .default) { _ in
+            self.exportImageDirectly()
+        })
+        
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
+            // Do nothing, just dismiss
+        })
+        
+        // Present the alert
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let window = windowScene.windows.first,
+           let rootViewController = window.rootViewController {
+            rootViewController.present(alert, animated: true)
+        }
+    }
+
+    private func exportImageDirectly() {
+        isSaving = true
+        
+        // Use the snapshot image if it exists
+        if let snapshot = currentPreviewSnapshot {
+            saveImageToPhotoLibrary(snapshot)
+        } else if let exportScene = latestSceneForExport ?? sceneView {
+            // Fallback: Use RenderingEngine with highest quality
+            let renderingEngine = RenderingEngine(scene: exportScene)
+            let transformToUse = latestCameraTransform
+            
+            renderingEngine.renderImage(
+                withQuality: .highest,
+                aspectRatio: appState.aspectRatio,
+                cameraTransform: transformToUse
+            ) { image in
+                guard let image = image else {
+                    DispatchQueue.main.async {
+                        self.isSaving = false
+                        self.showSaveErrorAlert = true
+                    }
+                    return
+                }
+                self.saveImageToPhotoLibrary(image)
+            }
+        } else {
+            // If no scene available
+            isSaving = false
+            showSaveErrorAlert = true
+        }
+    }
+    
+    private func saveImageToPhotoLibrary(_ image: UIImage) {
+        // If background is transparent, prefer saving PNG to preserve alpha
+        let preferPNG = appState.settings.backgroundColor == .transparent
+        photoSaveManager.saveImageToPhotoLibrary(image, preferPNG: preferPNG) { success, error in
+            DispatchQueue.main.async {
+                self.isSaving = false
+                if success {
+                    self.showSaveSuccessAlert = true
+                } else {
+                    self.showSaveErrorAlert = true
+                }
+            }
+        }
+    }
+
     private func openAppSettings() {
         if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
             UIApplication.shared.open(settingsUrl)
         }
     }
 }
+
+
 
 
 
