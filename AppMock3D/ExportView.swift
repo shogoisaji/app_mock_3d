@@ -72,18 +72,32 @@ struct ExportView: View {
             .pickerStyle(SegmentedPickerStyle())
             .padding()
             
-            Button(action: {
-                exportImage()
-            }) {
-                Text("Export Image")
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
+            HStack {
+                Button(action: {
+                    exportImage()
+                }) {
+                    Text("Export Image")
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                }
+                .disabled(isExporting)
+
+                Button(action: {
+                    exportVideo()
+                }) {
+                    Text("Export Video")
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(Color.green)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                }
+                .disabled(isExporting)
             }
             .padding()
-            .disabled(isExporting)
             
             if isExporting {
                 ProgressView("Exporting...", value: exportProgress, total: 1.0)
@@ -135,6 +149,41 @@ struct ExportView: View {
             // If neither is available
             previewImage = nil
             isLoadingPreview = false
+        }
+    }
+
+    private func exportVideo() {
+        isExporting = true
+
+        guard let engine = renderingEngine else {
+            isExporting = false
+            alertMessage = "Rendering engine not available."
+            showAlert = true
+            return
+        }
+
+        let transformToUse = currentCameraTransform ?? cameraTransform
+        engine.renderVideo(
+            withQuality: selectedQuality,
+            aspectRatio: aspectRatio,
+            cameraTransform: transformToUse
+        ) { url in
+            guard let videoURL = url else {
+                self.isExporting = false
+                self.alertMessage = "Failed to export video."
+                self.showAlert = true
+                return
+            }
+
+            self.photoSaveManager.saveVideoToPhotoLibrary(from: videoURL) { success, error in
+                self.isExporting = false
+                if success {
+                    self.alertMessage = "Video saved to photo library."
+                } else {
+                    self.alertMessage = "Failed to save video: \(error?.localizedDescription ?? "Unknown error")"
+                }
+                self.showAlert = true
+            }
         }
     }
     
