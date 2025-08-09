@@ -14,10 +14,11 @@ class AppState: ObservableObject {
     
     // 設定値
     @Published var backgroundColor: Color = .white
-    // 中央集約したモデル管理（ModelAsset）に変更
-    @Published var currentDevice: ModelAsset = .iphone16
+    // 中央集約したモデル管理（ModelAsset）に変更 - 設定から初期化
+    @Published var currentDevice: ModelAsset
     // 端末モデルの切替に伴い、ビューを確実に再構築させるためのトークン
     @Published var deviceReloadToken: Int = 0
+    
     // 設定の DeviceModel から使用する実ファイル（ModelAsset）を決めるためのヘルパ
     var selectedModelAsset: ModelAsset {
         switch settings.currentDeviceModel {
@@ -61,7 +62,7 @@ class AppState: ObservableObject {
     }
     @Published var lightingPreset: LightingPreset = .neutral
 
-    // 新規: ライティングポジション（1〜10）
+    // 新規: ライティングポジション（1～10）
     enum LightingPosition: Int, CaseIterable {
         case one = 1, two, three, four, five, six, seven, eight, nine, ten
     }
@@ -78,6 +79,40 @@ class AppState: ObservableObject {
     @Published var objectPosition: SCNVector3 = SCNVector3(0, 0, 0)
     @Published var objectEulerAngles: SCNVector3 = SCNVector3(0, 0, 0)
     @Published var objectScale: SCNVector3 = AppState.defaultScale
+
+    // イニシャライザで設定から currentDevice を初期化
+    init() {
+        let loadedSettings = AppSettings.load()
+        self.settings = loadedSettings
+        
+        // 設定から currentDevice を初期化
+        switch loadedSettings.currentDeviceModel {
+        case .iPhone16:
+            self.currentDevice = .iphone16
+        case .iPhoneSE:
+            self.currentDevice = .iphoneSE
+        default:
+            self.currentDevice = .iphone16
+        }
+        
+        // 設定変更通知を監視して currentDevice を更新
+        NotificationCenter.default.addObserver(
+            forName: .settingsDidUpdate,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.updateCurrentDeviceFromSettings()
+        }
+    }
+    
+    // 設定変更時に currentDevice を更新
+    private func updateCurrentDeviceFromSettings() {
+        let newDevice = selectedModelAsset
+        if currentDevice != newDevice {
+            currentDevice = newDevice
+            deviceReloadToken += 1 // ビューの再構築をトリガー
+        }
+    }
 
     // 値の更新ヘルパ
     func setObjectPosition(_ p: SCNVector3) { 
@@ -126,7 +161,7 @@ class AppState: ObservableObject {
         }
     }
     
-    // 新規: ライティングポジションを1→4で循環
+    // 新規: ライティングポジションを1～4で循環
     func cycleLightingPosition() {
         let all = LightingPosition.allCases
         if let idx = all.firstIndex(of: lightingPosition) {
