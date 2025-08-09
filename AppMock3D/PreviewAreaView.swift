@@ -1157,7 +1157,15 @@ private struct SnapshotHostingView: UIViewRepresentable {
                     let rotationY = Float(translation.x) * 0.01
                     
                     let oldEuler = appState.objectEulerAngles
-                    let newEuler = SCNVector3(oldEuler.x + rotationX, oldEuler.y + rotationY, oldEuler.z)
+                    let newEulerX = oldEuler.x + rotationX
+                    let newEulerY = oldEuler.y + rotationY
+                    
+                    // 60度の回転制限を適用（ラジアンに変換: 60度 = π/3）
+                    let maxRotation: Float = Float.pi / 3.0 // 60度
+                    let clampedEulerX = max(-maxRotation, min(maxRotation, newEulerX))
+                    let clampedEulerY = max(-maxRotation, min(maxRotation, newEulerY))
+                    
+                    let newEuler = SCNVector3(clampedEulerX, clampedEulerY, oldEuler.z)
                     
                     appState.setObjectEuler(newEuler)
                     
