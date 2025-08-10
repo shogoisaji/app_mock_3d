@@ -6,10 +6,6 @@ struct MenuView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            Text("Menu")
-                .font(.title)
-                .padding()
-            
             ScrollView {
                 VStack(spacing: 20) {
                     
@@ -21,7 +17,7 @@ struct MenuView: View {
                                 icon: "doc.text",
                                 title: "Privacy Policy",
                                 subtitle: "",
-                                action: {},
+                                action: { openPrivacyPolicy() },
                                 accessibilityId: "privacyPolicy"
                             )
                             
@@ -31,7 +27,7 @@ struct MenuView: View {
                                 icon: "doc.plaintext",
                                 title: "Terms of Service",
                                 subtitle: "",
-                                action: {},
+                                action: { openTermsOfService() },
                                 accessibilityId: "termsOfService"
                             )
                             
@@ -41,7 +37,7 @@ struct MenuView: View {
                                 icon: "envelope",
                                 title: "Contact",
                                 subtitle: "",
-                                action: { openMail() },
+                                action: { openContact() },
                                 accessibilityId: "contact"
                             )
                             
@@ -77,8 +73,20 @@ struct MenuView: View {
         return "1.0.0"
     }
     
-    private func openMail() {
-        if let url = URL(string: "mailto:support@appmock3d.com") {
+    private func openPrivacyPolicy() {
+        if let url = URL(string: "https://app-mock-3d.isajiappdev.workers.dev/privacy") {
+            UIApplication.shared.open(url)
+        }
+    }
+    
+    private func openTermsOfService() {
+        if let url = URL(string: "https://app-mock-3d.isajiappdev.workers.dev/terms") {
+            UIApplication.shared.open(url)
+        }
+    }
+    
+    private func openContact() {
+        if let url = URL(string: "https://app-mock-3d.isajiappdev.workers.dev/contact") {
             UIApplication.shared.open(url)
         }
     }

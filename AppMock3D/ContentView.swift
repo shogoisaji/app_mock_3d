@@ -68,20 +68,23 @@ struct ContentView: View {
             // 個別設定シート: アスペクト比
             BottomSheetManager(
                 isOpen: $appState.isAspectSheetPresented,
-                content: AspectRatioSettingsView(settings: $appState.settings, isPresented: $appState.isAspectSheetPresented)
+                content: AspectRatioSettingsView(settings: $appState.settings, isPresented: $appState.isAspectSheetPresented),
+                maxWidth: 400
             )
             .animation(.easeInOut(duration: appState.isAspectSheetPresented ? 0.4 : 0.3), value: appState.isAspectSheetPresented)
 
             // 個別設定シート: デバイス
             BottomSheetManager(
                 isOpen: $appState.isDeviceSheetPresented,
-                content: DeviceSelectionView(settings: $appState.settings, isPresented: $appState.isDeviceSheetPresented)
+                content: DeviceSelectionView(settings: $appState.settings, isPresented: $appState.isDeviceSheetPresented),
+                maxWidth: 400
             )
             .animation(.easeInOut(duration: appState.isDeviceSheetPresented ? 0.4 : 0.3), value: appState.isDeviceSheetPresented)
 
             BottomSheetManager(
                 isOpen: $appState.isMenuPresented,
-                content: MenuView(appState: appState)
+                content: MenuView(appState: appState),
+                maxWidth: 400
             )
             .animation(.easeInOut(duration: appState.isMenuPresented ? 0.4 : 0.3), value: appState.isMenuPresented)
         }
@@ -225,16 +228,14 @@ struct ContentView: View {
     private func exportImageDirectly() {
         isSaving = true
         
-        // Use the snapshot image if it exists
-        if let snapshot = currentPreviewSnapshot {
-            saveImageToPhotoLibrary(snapshot)
-        } else if let exportScene = latestSceneForExport ?? sceneView {
-            // Fallback: Use RenderingEngine with highest quality
+        // 高画質出力のため、スナップショットは使わず必ず再レンダリング
+        if let exportScene = latestSceneForExport ?? sceneView {
+            // Use RenderingEngine with ultra quality
             let renderingEngine = RenderingEngine(scene: exportScene)
             let transformToUse = latestCameraTransform
             
             renderingEngine.renderImage(
-                withQuality: .highest,
+                withQuality: .ultra,
                 aspectRatio: appState.aspectRatio,
                 cameraTransform: transformToUse
             ) { image in
@@ -255,8 +256,8 @@ struct ContentView: View {
     }
     
     private func saveImageToPhotoLibrary(_ image: UIImage) {
-        // If background is transparent, prefer saving PNG to preserve alpha
-        let preferPNG = appState.settings.backgroundColor == .transparent
+        // 常にPNGで保存して高画質・アルファ保持
+        let preferPNG = true
         photoSaveManager.saveImageToPhotoLibrary(image, preferPNG: preferPNG) { success, error in
             DispatchQueue.main.async {
                 self.isSaving = false

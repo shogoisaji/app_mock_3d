@@ -87,27 +87,34 @@ struct BottomAppBarView: View {
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("aspectButton")
 
-                    // デバイスボタン（例: 15）
-                    Button(action: {
-                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                        onDeviceTap()
-                    }) {
+                    // デバイスボタン（中央にデバイスアイコン、右下にラベル）
+                    ZStack(alignment: .bottomTrailing) {
+                        GlassButton(
+                            symbol: "iphone",
+                            action: onDeviceTap,
+                            accessibilityId: "deviceButton",
+                            size: 36,
+                            cornerRadius: 12
+                        )
+
+                        // ラベル用の小さなガラスバッジ（例: "A", "B"）
                         ZStack {
                             GlassEffectView(
-                                cornerRadius: 12,
-                                borderLineWidth: 0.6,
-                                shadowRadius: 6,
-                                shadowOffset: CGSize(width: 0, height: 3),
-                                intensity: .medium
+                                cornerRadius: 8,
+                                borderLineWidth: 0.5,
+                                shadowRadius: 4,
+                                shadowOffset: CGSize(width: 0, height: 2),
+                                intensity: .strong
                             )
+
                             Text(deviceLabel)
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(.system(size: 11, weight: .bold))
                                 .foregroundStyle(.primary)
                         }
-                        .frame(width: 36, height: 36)
+                        .frame(width: 18, height: 16)
+                        .offset(x: 1, y: 1)
+                        .accessibilityHidden(true)
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("deviceButton")
 
                     // Toggle grid helper lines
                     GlassButton(

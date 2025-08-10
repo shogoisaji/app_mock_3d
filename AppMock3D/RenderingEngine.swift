@@ -8,6 +8,10 @@ class RenderingEngine {
     init(scene: SCNScene) {
         self.scene = scene
         self.renderer = SCNRenderer(device: MTLCreateSystemDefaultDevice(), options: nil)
+        // Ensure the renderer is rendering the provided scene
+        self.renderer.scene = scene
+        // Enable default lighting so models are visible even without explicit lights
+        self.renderer.autoenablesDefaultLighting = true
         self.scene = scene
     }
 
@@ -22,7 +26,18 @@ class RenderingEngine {
             let baseResolution = quality.resolution
             let antiAliasing = quality.antiAliasing
 
-            let renderSize = self.calculateRenderSize(aspectRatio: aspectRatio, baseResolution: baseResolution)
+            // Calculate requested render size based on quality and aspect ratio
+            var renderSize = self.calculateRenderSize(aspectRatio: aspectRatio, baseResolution: baseResolution)
+            
+            // Cap the output size to avoid huge images that can cause memory issues
+            // Preserve aspect ratio while limiting the longer edge
+            let maxDimension: CGFloat = 4096
+            let maxSide = max(renderSize.width, renderSize.height)
+            if maxSide > maxDimension {
+                let scale = maxDimension / maxSide
+                renderSize = CGSize(width: floor(renderSize.width * scale),
+                                    height: floor(renderSize.height * scale))
+            }
 
             let cameraNode = self.getOrCreateCameraNode()
             self.configureCamera(cameraNode)
@@ -38,10 +53,21 @@ class RenderingEngine {
                 self.scene.background.contents = bgColor
             }
 
+            let aaMode: SCNAntialiasingMode
+            if antiAliasing >= 8 {
+                aaMode = .multisampling4X
+            } else if antiAliasing >= 4 {
+                aaMode = .multisampling4X
+            } else if antiAliasing >= 2 {
+                aaMode = .multisampling2X
+            } else {
+                aaMode = .none
+            }
+
             let image = self.renderer.snapshot(
                 atTime: 0,
                 with: renderSize,
-                antialiasingMode: antiAliasing > 1 ? .multisampling4X : .none
+                antialiasingMode: aaMode
             )
 
             DispatchQueue.main.async {

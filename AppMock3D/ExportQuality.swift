@@ -5,6 +5,7 @@ enum ExportQuality: String, CaseIterable, Codable {
     case medium = "Medium"
     case high = "High"
     case highest = "Highest"
+    case ultra = "Ultra"
     
     var resolution: CGSize {
         switch self {
@@ -16,6 +17,8 @@ enum ExportQuality: String, CaseIterable, Codable {
             return CGSize(width: 2048, height: 2048)
         case .highest:
             return CGSize(width: 4096, height: 4096)
+        case .ultra:
+            return CGSize(width: 8192, height: 8192)
         }
     }
     
@@ -29,6 +32,8 @@ enum ExportQuality: String, CaseIterable, Codable {
             return 4
         case .highest:
             return 8
+        case .ultra:
+            return 8
         }
     }
     
@@ -41,6 +46,8 @@ enum ExportQuality: String, CaseIterable, Codable {
         case .high:
             return 4
         case .highest:
+            return 8
+        case .ultra:
             return 8
         }
     }

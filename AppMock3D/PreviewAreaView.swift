@@ -170,6 +170,17 @@ struct PreviewAreaView: View {
                 startInitialAnimation()
             }
         }
+        .onChange(of: currentScene) { _, newScene in
+            // When scene changes (e.g., device change), reapply background settings
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                if let geometry = UIApplication.shared.windows.first?.bounds.size {
+                    updateSceneBackground(appState.settings, size: CGSize(width: geometry.width, height: geometry.height))
+                } else {
+                    // Fallback size
+                    updateSceneBackground(appState.settings, size: CGSize(width: 375, height: 667))
+                }
+            }
+        }
         // Keep state stable; state is bound to upstream scene via @Binding
     }
 }
@@ -207,13 +218,35 @@ private struct ContentLayout: View {
     let onSnapshotRequested: ((UIImage?) -> Void)?
     let geometry: GeometryProxy
     
-    private var previewWidth: CGFloat { geometry.size.width }
-    private var previewHeight: CGFloat { geometry.size.width / appState.aspectRatio }
+    private var maxAllowedHeight: CGFloat { 
+        // Leave space for navigation and UI elements (approximately 200pt total)
+        geometry.size.height - 200
+    }
+    
+private var previewDimensions: (width: CGFloat, height: CGFloat) {
+        let aspectRatio = appState.aspectRatio
+        // Account for horizontal padding (12pt on each side = 24pt total)
+        let availableWidth = geometry.size.width - 24
+        let calculatedHeight = availableWidth / aspectRatio
+        
+        if calculatedHeight <= maxAllowedHeight {
+            // Height fits, use available width
+            return (availableWidth, calculatedHeight)
+        } else {
+            // Height overflows, adjust width to maintain aspect ratio
+            let constrainedHeight = maxAllowedHeight
+            let constrainedWidth = constrainedHeight * aspectRatio
+            return (constrainedWidth, constrainedHeight)
+        }
+    }
+    
+    private var previewWidth: CGFloat { previewDimensions.width }
+    private var previewHeight: CGFloat { previewDimensions.height }
     private var previewSize: CGSize { CGSize(width: previewWidth, height: previewHeight) }
     
-    var body: some View {
-        VStack {
-            Spacer()
+var body: some View {
+        ZStack {
+            // Center the preview explicitly
             SceneView(
                 currentScene: currentScene,
                 appState: appState,
@@ -224,8 +257,8 @@ private struct ContentLayout: View {
                 previewWidth: previewWidth,
                 previewHeight: previewHeight
             )
-            Spacer()
         }
+.frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.horizontal, 12)
     }
 }
@@ -247,13 +280,13 @@ private struct SceneView: View {
                 CheckerboardBackground(lightColor: Color(white: 0.92),
                                        darkColor: Color(white: 0.82),
                                        squareSize: 12)
-                    .frame(width: previewWidth - 24, height: previewHeight)
+                    .frame(width: previewWidth, height: previewHeight)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     .allowsHitTesting(false)
             }
             SnapshotHostingView(
                 scene: currentScene,
-                previewSize: CGSize(width: previewWidth - 24, height: previewHeight),
+                previewSize: CGSize(width: previewWidth, height: previewHeight),
                 shouldTakeSnapshot: $shouldTakeSnapshot,
                 onCameraUpdate: { transform in
                     onCameraUpdated?(transform)
@@ -262,10 +295,10 @@ private struct SceneView: View {
                 appState: appState
             )
         }
-        .frame(width: previewWidth - 24, height: previewHeight)
+        .frame(width: previewWidth, height: previewHeight)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .background(PreferenceBackground())
-        // .overlay(
+// .overlay(
         //     RoundedRectangle(cornerRadius: 10, style: .continuous)
         //         .stroke(Color.white.opacity(0.9), lineWidth: 1.5)
         // )
@@ -421,6 +454,10 @@ private struct PreviewModifiersViewModifier: ViewModifier {
                 ensureDefaultLights(in: currentScene)
                 captureInitialTransforms()
                 applyAppStateTransform()
+                // Apply initial lighting position
+                applyLightingPosition(appState.lightingPosition)
+                // Apply initial background settings
+                updateSceneBackground(appState.settings, CGSize(width: 375, height: 667))
                 onSceneUpdated?(currentScene)
                 if let pov = currentScene.rootNode.childNode(withName: "camera", recursively: true) {
                     onCameraUpdated?(pov.transform)

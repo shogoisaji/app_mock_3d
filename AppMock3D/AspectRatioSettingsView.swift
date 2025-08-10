@@ -7,17 +7,11 @@ struct AspectRatioSettingsView: View {
     var body: some View {
         GlassContainer(cornerRadius: 20, intensity: .medium) {
             VStack(spacing: 16) {
-                HStack {
-                    Text("Aspect Ratio Settings")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                    Spacer()
-                }
-                .padding(.horizontal, 8)
+                // Remove the title section
                 
                 // Preset selection
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Preset")
+                    Text("Aspect Ratio")
                         .font(.headline)
                     
                     Picker("Aspect Ratio Preset", selection: $settings.aspectRatioPreset) {

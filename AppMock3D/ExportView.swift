@@ -2,7 +2,7 @@ import SwiftUI
 import SceneKit
 
 struct ExportView: View {
-    @State private var selectedQuality: ExportQuality = .high
+    @State private var selectedQuality: ExportQuality = .ultra
     @State private var isExporting: Bool = false
     @State private var exportProgress: Double = 0.0
     @State private var showAlert: Bool = false
@@ -170,10 +170,8 @@ struct ExportView: View {
         isExporting = true
         exportProgress = 0.0
         
-        // Save the snapshot image if it exists
-        if let snapshot = previewSnapshot {
-            saveImageToPhotoLibrary(snapshot)
-        } else if let engine = renderingEngine {
+        // 高画質出力のため、スナップショットは使わず必ず再レンダリング
+        if let engine = renderingEngine {
             // Generate the image using RenderingEngine (fallback)
             let transformToUse = currentCameraTransform ?? cameraTransform
             engine.renderImage(
@@ -198,7 +196,8 @@ struct ExportView: View {
     }
     
     private func saveImageToPhotoLibrary(_ image: UIImage) {
-        let preferPNG = imageHasAlpha(image)
+        // 常にPNGで保存して高画質・アルファ保持
+        let preferPNG = true
         photoSaveManager.saveImageToPhotoLibrary(image, preferPNG: preferPNG) { success, error in
             self.isExporting = false
             if success {
