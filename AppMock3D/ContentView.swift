@@ -43,7 +43,10 @@ struct ContentView: View {
                 currentPreviewSnapshot: $currentPreviewSnapshot,
                 shouldTakeSnapshot: $shouldTakeSnapshot,
                 isSaving: $isSaving,
-                handleImageButtonPressed: handleImageButtonPressed
+                handleImageButtonPressed: handleImageButtonPressed,
+                onHighResExportReady: { callback in
+                    self.highResExportCallback = callback
+                }
             )
             .tint(Color(hex: "#E99370") ?? .orange) // Accent color
             .onAppear {
@@ -159,12 +162,15 @@ struct ContentView: View {
             // 選択された画像がある場合、新しいシーンに再適用
             if let selectedImage = imagePickerManager.selectedImage {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    // TextureManagerを使って新しいシーンに画像を適用
-                    if let updatedScene = TextureManager.shared.applyTextureToModel(scene, image: selectedImage) {
+                    // TextureManagerを使って新しいシーンに画像を適用（Data引数に合わせて変換）
+                    let imageData: Data? = selectedImage.pngData() ?? selectedImage.jpegData(compressionQuality: 0.95)
+                    if let data = imageData, let updatedScene = TextureManager.shared.applyTextureToModel(scene, imageData: data) {
                         self.sceneView = updatedScene
                         self.latestSceneForExport = updatedScene
                         self.appState.setImageApplied(true)
+                        #if DEBUG
                         print("[DeviceSwitch] Reapplied selected image to new device model")
+                        #endif
                     }
                 }
             }
@@ -228,32 +234,33 @@ struct ContentView: View {
     private func exportImageDirectly() {
         isSaving = true
         
-        // 高画質出力のため、スナップショットは使わず必ず再レンダリング
-        if let exportScene = latestSceneForExport ?? sceneView {
-            // Use RenderingEngine with ultra quality
-            let renderingEngine = RenderingEngine(scene: exportScene)
-            let transformToUse = latestCameraTransform
-            
-            renderingEngine.renderImage(
-                withQuality: .ultra,
-                aspectRatio: appState.aspectRatio,
-                cameraTransform: transformToUse
-            ) { image in
-                guard let image = image else {
-                    DispatchQueue.main.async {
+        #if DEBUG
+        print("[Export] Using ACTUAL preview SCNView for 100% consistency")
+        #endif
+        
+        // Use the high-resolution export callback from the preview
+        if let callback = highResExportCallback {
+            callback(.ultra) { image in
+                DispatchQueue.main.async {
+                    guard let image = image else {
                         self.isSaving = false
                         self.showSaveErrorAlert = true
+                        return
                     }
-                    return
+                    self.saveImageToPhotoLibrary(image)
                 }
-                self.saveImageToPhotoLibrary(image)
             }
         } else {
-            // If no scene available
+            #if DEBUG
+            print("[Export] High-res export callback not available")
+            #endif
             isSaving = false
             showSaveErrorAlert = true
         }
     }
+    
+    // Store reference to high-resolution export callback
+    @State private var highResExportCallback: ((ExportQuality, @escaping (UIImage?) -> Void) -> Void)?
     
     private func saveImageToPhotoLibrary(_ image: UIImage) {
         // 常にPNGで保存して高画質・アルファ保持

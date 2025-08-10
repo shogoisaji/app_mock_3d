@@ -69,8 +69,8 @@ class AppState: ObservableObject {
     @Published var lightingPosition: LightingPosition = .one
     var lightingPositionNumber: Int { lightingPosition.rawValue }
 
-    // リセットトリガー（トグルで変化させて監視側で反応）
-    @Published var resetTransformToggle: Bool = false
+    // リセットトリガー（常に変化を保証するためカウンタで監視側へ通知）
+    @Published var resetTransformCounter: Int = 0
 
     // デフォルトスケール（少し小さめに表示）
     static let defaultScale: SCNVector3 = SCNVector3(0.9, 0.9, 0.9)
@@ -172,9 +172,9 @@ class AppState: ObservableObject {
         }
     }
 
-    // リセット発火
+    // リセット発火（毎回 onChange が確実に発火する）
     func triggerResetTransform() {
-        resetTransformToggle.toggle()
+        resetTransformCounter += 1
     }
     
     func setImageProcessing(_ processing: Bool) {

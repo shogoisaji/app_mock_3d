@@ -144,11 +144,28 @@ class ModelManager {
                                 material.diffuse.contents = UIColor.black
                                 material.specular.contents = UIColor.white
                                 material.shininess = 1.0
+                                // 表裏の違いで消えることを防ぐ
+                                material.isDoubleSided = true
+                                material.cullMode = .back
+                                // 透明化を明示的に無効化
+                                material.transparency = 1.0
+                                material.transparent.contents = nil
+                                material.transparencyMode = .aOne
                             } else {
                                 // その他の部分にはグレーの材質
                                 material.diffuse.contents = UIColor(red: 0.4, green: 0.4, blue: 0.4, alpha: 1.0)
                                 material.specular.contents = UIColor.white
                                 material.shininess = 0.6
+                            }
+                        } else {
+                            // 既に材質がある場合でも、画面系ノードは裏面カリングで消えないように最低限の設定を入れる
+                            let nodeNameLower = (node.name ?? "").lowercased()
+                            if nodeNameLower == "screen" || nodeNameLower == "image_display" {
+                                material.isDoubleSided = true
+                                material.cullMode = .back
+                                material.transparency = 1.0
+                                material.transparent.contents = nil
+                                material.transparencyMode = .aOne
                             }
                         }
                     }
@@ -201,6 +218,12 @@ class ModelManager {
         screenMaterial.diffuse.contents = UIColor.black // Default is a black screen
         screenMaterial.specular.contents = UIColor.white
         screenMaterial.shininess = 1.0
+        // デフォルトでも表裏の違いで消えないようにする
+        screenMaterial.isDoubleSided = true
+        screenMaterial.cullMode = .back
+        screenMaterial.transparency = 1.0
+        screenMaterial.transparent.contents = nil
+        screenMaterial.transparencyMode = .aOne
         screen.materials = [screenMaterial]
         
         let screenNode = SCNNode(geometry: screen)

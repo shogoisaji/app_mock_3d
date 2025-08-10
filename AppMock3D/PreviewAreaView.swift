@@ -33,7 +33,11 @@ struct PreviewAreaView: View {
     var onSnapshotRequested: ((UIImage?) -> Void)? = nil
     // Added: Trigger for snapshot request
     @Binding var shouldTakeSnapshot: Bool
-
+    
+    // High-resolution export support
+    @State private var shouldTakeHighResSnapshot = false
+    @State private var highResExportQuality: ExportQuality?
+    @State private var highResExportCompletion: ((UIImage?) -> Void)?
     
     init(currentScene: Binding<SCNScene>, appState: AppState, imagePickerManager: ImagePickerManager, shouldTakeSnapshot: Binding<Bool>, onSceneUpdated: ((SCNScene) -> Void)? = nil, onCameraUpdated: ((SCNMatrix4) -> Void)? = nil, onSnapshotRequested: ((UIImage?) -> Void)? = nil) {
         self._currentScene = currentScene
@@ -129,6 +133,34 @@ struct PreviewAreaView: View {
             // Use a neutral color as a simple environment; app may later set a cube map
             currentScene.lightingEnvironment.intensity = 1.0
         }
+        
+        // Ensure camera exists and is configured to match export camera
+        ensureAndConfigureCamera()
+    }
+    
+    // MARK: - Camera Configuration
+    private func ensureAndConfigureCamera() {
+        // Get or create camera node
+        var cameraNode = currentScene.rootNode.childNode(withName: "camera", recursively: true)
+        
+        if cameraNode == nil {
+            // Create camera if it doesn't exist
+            let newCameraNode = SCNNode()
+            newCameraNode.name = "camera"
+            newCameraNode.camera = SCNCamera()
+            newCameraNode.position = SCNVector3(x: 0, y: 0, z: 5)
+            newCameraNode.look(at: SCNVector3(x: 0, y: 0, z: 0))
+            currentScene.rootNode.addChildNode(newCameraNode)
+            cameraNode = newCameraNode
+        }
+        
+        // Configure camera to match export camera settings exactly
+        if let camera = cameraNode?.camera {
+            camera.fieldOfView = 60
+            camera.automaticallyAdjustsZRange = true
+            camera.zNear = 0.1
+            camera.zFar = 100
+        }
     }
     
     var body: some View {
@@ -161,6 +193,8 @@ struct PreviewAreaView: View {
         .onAppear {
             // Start the animation when the view appears
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                // Ensure lights exist so preview is lit by our lights
+                ensureDefaultLights()
                 startInitialAnimation()
             }
         }
@@ -173,6 +207,8 @@ struct PreviewAreaView: View {
         .onChange(of: currentScene) { _, newScene in
             // When scene changes (e.g., device change), reapply background settings
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                // Ensure lights exist on the new scene as well
+                ensureDefaultLights()
                 if let geometry = UIApplication.shared.windows.first?.bounds.size {
                     updateSceneBackground(appState.settings, size: CGSize(width: geometry.width, height: geometry.height))
                 } else {
@@ -416,6 +452,34 @@ private struct PreviewModifiersViewModifier: ViewModifier {
         if scene.lightingEnvironment.contents == nil {
             scene.lightingEnvironment.intensity = 1.0
         }
+        
+        // Ensure camera exists and is configured to match export camera
+        ensureAndConfigureCamera(in: scene)
+    }
+    
+    // Configure camera in the given scene to match export settings
+    private func ensureAndConfigureCamera(in scene: SCNScene) {
+        // Get or create camera node
+        var cameraNode = scene.rootNode.childNode(withName: "camera", recursively: true)
+        
+        if cameraNode == nil {
+            // Create camera if it doesn't exist
+            let newCameraNode = SCNNode()
+            newCameraNode.name = "camera"
+            newCameraNode.camera = SCNCamera()
+            newCameraNode.position = SCNVector3(x: 0, y: 0, z: 5)
+            newCameraNode.look(at: SCNVector3(x: 0, y: 0, z: 0))
+            scene.rootNode.addChildNode(newCameraNode)
+            cameraNode = newCameraNode
+        }
+        
+        // Configure camera to match export camera settings exactly
+        if let camera = cameraNode?.camera {
+            camera.fieldOfView = 60
+            camera.automaticallyAdjustsZRange = true
+            camera.zNear = 0.1
+            camera.zFar = 100
+        }
     }
     
     func body(content: Content) -> some View {
@@ -437,7 +501,7 @@ private struct PreviewModifiersViewModifier: ViewModifier {
             .onChange(of: appState.lightingPosition) { _, newPos in
                 applyLightingPosition(newPos)
             }
-            .onChange(of: appState.resetTransformToggle) { _ in
+            .onChange(of: appState.resetTransformCounter) { _ in
                 resetSceneTransform()
             }
             .onChange(of: positionKey) { _, _ in
@@ -900,8 +964,9 @@ extension PreviewAreaView {
                 TextureManager.shared.clearCache()
             }
             
-            // Execute texture application
-            if let updatedScene = TextureManager.shared.applyTextureToModel(self.currentScene, image: image) {
+            // Execute texture application (convert UIImage to Data and call imageData: API)
+            let imageData: Data? = image.pngData() ?? image.jpegData(compressionQuality: 0.95)
+            if let data = imageData, let updatedScene = TextureManager.shared.applyTextureToModel(self.currentScene, imageData: data) {
                 DispatchQueue.main.async {
                     // Set the scene with the current transform maintained
                     withAnimation(.easeInOut(duration: 0.3)) {
@@ -1135,6 +1200,61 @@ extension PreviewAreaView {
                 self.onSnapshotRequested?(snapshot)
             }
         }
+        
+        func takeHighResolutionSnapshot(quality: ExportQuality, completion: @escaping (UIImage?) -> Void) {
+            guard let scnView = scnView else {
+                completion(nil)
+                return
+            }
+            
+            // Calculate high resolution size based on quality
+            let baseResolution = quality.resolution
+            let currentAspectRatio = scnView.frame.width / scnView.frame.height
+            
+            var targetSize: CGSize
+            if currentAspectRatio > 1.0 {
+                targetSize = CGSize(width: baseResolution.width, height: baseResolution.width / currentAspectRatio)
+            } else {
+                targetSize = CGSize(width: baseResolution.height * currentAspectRatio, height: baseResolution.height)
+            }
+            
+            // Cap to reasonable size to avoid memory issues
+            let maxDimension: CGFloat = 4096
+            let maxSide = max(targetSize.width, targetSize.height)
+            if maxSide > maxDimension {
+                let scale = maxDimension / maxSide
+                targetSize = CGSize(width: floor(targetSize.width * scale),
+                                  height: floor(targetSize.height * scale))
+            }
+            
+            print("[PreviewExport] Using actual preview SCNView for high-res export")
+            print("[PreviewExport] Current SCNView size: \(scnView.frame.size)")
+            print("[PreviewExport] Target export size: \(targetSize)")
+            print("[PreviewExport] Camera position: \(scnView.pointOfView?.position ?? SCNVector3Zero)")
+            
+            DispatchQueue.main.async {
+                // Store original frame
+                let originalFrame = scnView.frame
+                
+                // Temporarily resize the SCNView to high resolution for snapshot
+                scnView.frame = CGRect(origin: .zero, size: targetSize)
+                
+                // Force layout and rendering
+                scnView.setNeedsLayout()
+                scnView.layoutIfNeeded()
+                
+                // Take snapshot at high resolution
+                let snapshot = scnView.snapshot()
+                
+                // Restore original frame
+                scnView.frame = originalFrame
+                scnView.setNeedsLayout()
+                scnView.layoutIfNeeded()
+                
+                print("[PreviewExport] High-res snapshot completed. Size: \(snapshot.size)")
+                completion(snapshot)
+            }
+        }
     }
 }
 
@@ -1148,9 +1268,30 @@ struct SnapshotHostingView: UIViewRepresentable {
     var onCameraUpdate: ((SCNMatrix4) -> Void)?
     var onSnapshotRequested: ((UIImage?) -> Void)?
     var appState: AppState
+    
+    // Add high-resolution export functionality
+    @State private var exportQuality: ExportQuality?
+    @State private var exportCompletion: ((UIImage?) -> Void)?
+    @State private var shouldTakeHighResSnapshot = false
+    @State private var highResExportQuality: ExportQuality?
+    @State private var highResExportCompletion: ((UIImage?) -> Void)?
 
     func makeCoordinator() -> PreviewAreaView.Coordinator {
         PreviewAreaView.Coordinator(onCameraUpdate: onCameraUpdate, onSnapshotRequested: onSnapshotRequested)
+    }
+    
+    // Helper function to calculate what RenderingEngine would use
+    private func calculatePreviewRenderSize(aspectRatio: Double) -> CGSize {
+        // This mimics RenderingEngine's calculateRenderSize logic with low quality
+        let baseResolution = CGSize(width: 512, height: 512) // ExportQuality.low.resolution
+        
+        if aspectRatio > 1.0 {
+            return CGSize(width: baseResolution.width,
+                          height: baseResolution.width / aspectRatio)
+        } else {
+            return CGSize(width: baseResolution.height * aspectRatio,
+                          height: baseResolution.height)
+        }
     }
 
     func makeUIView(context: Context) -> SCNView {
@@ -1158,10 +1299,40 @@ struct SnapshotHostingView: UIViewRepresentable {
         scnView.scene = scene
         scnView.backgroundColor = .clear
         scnView.allowsCameraControl = false
-        // Fallback: enable default lighting to avoid completely dark scene when no lights exist
-        scnView.autoenablesDefaultLighting = true
+        // Use only app-defined lights to reflect lighting controls accurately
+        scnView.autoenablesDefaultLighting = false
         scnView.isPlaying = true
         scnView.delegate = context.coordinator
+
+        // Debug: Print preview information
+        print("[Preview] === PREVIEW DEBUG (makeUIView) ===")
+        print("[Preview] PreviewSize: \(previewSize)")
+        print("[Preview] AppState aspectRatio: \(appState.aspectRatio)")
+        
+        // Calculate what RenderingEngine would use
+        let renderSize = calculatePreviewRenderSize(aspectRatio: appState.aspectRatio)
+        print("[Preview] What RenderingEngine would use: \(renderSize)")
+        
+        // Find camera and print its settings
+        if let cameraNode = scene.rootNode.childNode(withName: "camera", recursively: true) {
+            print("[Preview] Camera found - Position: \(cameraNode.position), EulerAngles: \(cameraNode.eulerAngles)")
+            print("[Preview] Camera transform: \(cameraNode.transform)")
+            if let camera = cameraNode.camera {
+                print("[Preview] Camera settings - FieldOfView: \(camera.fieldOfView), zNear: \(camera.zNear), zFar: \(camera.zFar)")
+            }
+            scnView.pointOfView = cameraNode
+        } else {
+            print("[Preview] Camera NOT found, using default")
+        }
+        
+        // Find manipulationRoot and print its transform
+        if let manipulationRoot = scene.rootNode.childNode(withName: "manipulationRoot", recursively: false) {
+            print("[Preview] ManipulationRoot found - Position: \(manipulationRoot.position), EulerAngles: \(manipulationRoot.eulerAngles), Scale: \(manipulationRoot.scale)")
+        } else {
+            print("[Preview] ManipulationRoot NOT found")
+        }
+        
+        print("[Preview] === END PREVIEW DEBUG (makeUIView) ===")
 
         // Wire coordinator references
         context.coordinator.scnView = scnView
@@ -1194,6 +1365,16 @@ struct SnapshotHostingView: UIViewRepresentable {
                 self.shouldTakeSnapshot = false
             }
         }
+        
+        // High-resolution export trigger
+        if shouldTakeHighResSnapshot, 
+           let quality = highResExportQuality,
+           let completion = highResExportCompletion {
+            context.coordinator.takeHighResolutionSnapshot(quality: quality, completion: completion)
+            shouldTakeHighResSnapshot = false
+            highResExportQuality = nil
+            highResExportCompletion = nil
+        }
     }
 }
 
@@ -1223,6 +1404,14 @@ extension PreviewAreaView {
 }
 
 extension PreviewAreaView {
+    // Expose high-resolution snapshot functionality
+    func requestHighResolutionSnapshot(quality: ExportQuality, completion: @escaping (UIImage?) -> Void) {
+        // Set the high-res export parameters and trigger
+        highResExportCompletion = completion
+        highResExportQuality = quality
+        shouldTakeHighResSnapshot = true
+    }
+    
     // Apply the transform held in AppState to manipulationRoot
     private func applyAppStateTransform() {
         // アピアアニメーション中はスナップ上書きを避ける

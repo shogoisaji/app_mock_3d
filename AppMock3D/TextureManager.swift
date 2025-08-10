@@ -109,10 +109,9 @@ class TextureManager {
         clearCache()
     }
     
-    func applyTextureToModel(_ model: SCNScene, image: UIImage) -> SCNScene? {
-        // Optimize the image (resize if necessary)
+    private func applyTextureToModel(_ model: SCNScene, image: UIImage) -> SCNScene? {
+        // 画像を最適化（サイズ/向き/反転など）
         let optimizedImage = optimizeImageForTexture(image)
-        // Pre-correct horizontal mirroring at the image level
         let correctedImage = flipImageHorizontally(optimizedImage)
         
         // Debug: Output image information
@@ -178,24 +177,53 @@ class TextureManager {
             }
             
             if isScreenNode && hasGeometry {
+                #if DEBUG
                 print("✓ Found screen node: '\(node.name ?? "unnamed")'")
+                #endif
                 screenNodeCandidates.append((node, node.name ?? "unnamed"))
             } else if isScreenNode && !hasGeometry {
                 // Screen name found but no geometry: search descendants for first geometry node
                 if let geomNode = findFirstGeometryNode(startingAt: node) {
+                    #if DEBUG
                     print("✓ Found descendant geometry for screen node '\(node.name ?? "unnamed")' -> '\(geomNode.name ?? "unnamed")'")
+                    #endif
                     // Preserve the ORIGINAL screen-node name for candidate selection priority
                     screenNodeCandidates.append((geomNode, node.name ?? geomNode.name ?? "unnamed"))
                 } else {
+                    #if DEBUG
                     print("⚠︎ Screen-named node has no geometry and no descendant geometry: '\(node.name ?? "unnamed")'")
+                    #endif
                 }
-            } else if hasGeometry {
-                // Even if it's not a screen name, add nodes with geometry as candidates
-                screenNodeCandidates.append((node, node.name ?? "unnamed"))
+            }
+        }
+        
+        // If no screen candidates were found, look for marker nodes whose name CONTAINS
+        // screen/display/image_display/lcd/oled (case-insensitive), and choose the nearest geometry to them.
+        if screenNodeCandidates.isEmpty {
+            let markerTokens = ["image_display", "display", "screen", "lcd", "oled"]
+            let markers = findNodes(containingAny: markerTokens, in: workingScene.rootNode)
+            var bestPair: (marker: SCNNode, nearest: SCNNode)?
+            var bestDist2: Float = .greatestFiniteMagnitude
+            for marker in markers {
+                if let nearest = findNearestGeometryNode(to: marker, in: workingScene.rootNode) {
+                    let mp = marker.worldPosition
+                    let np = nearest.worldPosition
+                    let dx = mp.x - np.x, dy = mp.y - np.y, dz = mp.z - np.z
+                    let d2 = dx*dx + dy*dy + dz*dz
+                    if d2 < bestDist2 {
+                        bestDist2 = d2
+                        bestPair = (marker, nearest)
+                    }
+                }
+            }
+            if let pair = bestPair {
                 #if DEBUG
-                if enableDebugLogging {
-                    print("Added geometry node as candidate: '\(node.name ?? "unnamed")'")
-                }
+                print("Using nearest geometry to marker '\(pair.marker.name ?? "unnamed")': \(pair.nearest.name ?? "unnamed") (dist2=\(bestDist2))")
+                #endif
+                screenNodeCandidates.append((pair.nearest, pair.marker.name ?? pair.nearest.name ?? "image_display"))
+            } else {
+                #if DEBUG
+                print("No suitable marker-based nearest geometry found.")
                 #endif
             }
         }
@@ -254,7 +282,7 @@ class TextureManager {
                     screenMaterial.emission.contentsTransform = screenTransform1
                     
                     // Render only front face to avoid mirrored artifacts
-                    screenMaterial.isDoubleSided = false
+                    screenMaterial.isDoubleSided = true
                     screenMaterial.cullMode = .back
                     screenMaterial.lightingModel = .constant
                     screenMaterial.emission.contents = correctedImage
@@ -264,9 +292,13 @@ class TextureManager {
                     screenMaterial.emission.magnificationFilter = .nearest
                     screenMaterial.emission.mipFilter = .none
                     screenMaterial.emission.intensity = 1.0
-                    screenMaterial.blendMode = .replace
-                    screenMaterial.readsFromDepthBuffer = false
-                    screenMaterial.writesToDepthBuffer = false
+                    screenMaterial.blendMode = .alpha
+                    screenMaterial.readsFromDepthBuffer = true
+                    screenMaterial.writesToDepthBuffer = true
+                    // Ensure no unintended transparency
+                    screenMaterial.transparency = 1.0
+                    screenMaterial.transparent.contents = nil
+                    screenMaterial.transparencyMode = .aOne
                     
                     // Specular reflection settings (kept, though constant lighting minimizes impact)
                     screenMaterial.specular.contents = UIColor.white
@@ -354,7 +386,7 @@ class TextureManager {
                         screenMaterial.emission.contentsTransform = screenTransform2
                         
                         // Render only front face to avoid mirrored artifacts
-                        screenMaterial.isDoubleSided = false
+                        screenMaterial.isDoubleSided = true
                         screenMaterial.cullMode = .back
                         screenMaterial.lightingModel = .constant
                         screenMaterial.emission.contents = correctedImage
@@ -364,9 +396,13 @@ class TextureManager {
                         screenMaterial.emission.magnificationFilter = .nearest
                         screenMaterial.emission.mipFilter = .none
                         screenMaterial.emission.intensity = 1.0
-                        screenMaterial.blendMode = .replace
-                        screenMaterial.readsFromDepthBuffer = false
-                        screenMaterial.writesToDepthBuffer = false
+                        screenMaterial.blendMode = .alpha
+                        screenMaterial.readsFromDepthBuffer = true
+                        screenMaterial.writesToDepthBuffer = true
+                        // Ensure no unintended transparency
+                        screenMaterial.transparency = 1.0
+                        screenMaterial.transparent.contents = nil
+                        screenMaterial.transparencyMode = .aOne
                         
                         // Specular reflection settings (kept, though constant lighting minimizes impact)
                         screenMaterial.specular.contents = UIColor.white
@@ -433,7 +469,7 @@ class TextureManager {
                     // Create a new material and apply the texture
                     let screenMaterial = SCNMaterial()
                     
-                    // Texture quality settings (use emission-only; keep diffuse black)
+                    // Texture quality settings (use emission-only; keep diffuse black to avoid double sampling)
                     screenMaterial.diffuse.contents = UIColor.black
                     screenMaterial.diffuse.wrapS = .clamp
                     screenMaterial.diffuse.wrapT = .clamp
@@ -447,7 +483,7 @@ class TextureManager {
                     screenMaterial.emission.contentsTransform = screenTransform3
                     
                     // Render only front face to avoid mirrored artifacts
-                    screenMaterial.isDoubleSided = false
+                    screenMaterial.isDoubleSided = true
                     screenMaterial.cullMode = .back
                     screenMaterial.lightingModel = .constant
                     screenMaterial.emission.contents = correctedImage
@@ -457,9 +493,13 @@ class TextureManager {
                     screenMaterial.emission.magnificationFilter = .nearest
                     screenMaterial.emission.mipFilter = .none
                     screenMaterial.emission.intensity = 1.0
-                    screenMaterial.blendMode = .replace
-                    screenMaterial.readsFromDepthBuffer = false
-                    screenMaterial.writesToDepthBuffer = false
+                    screenMaterial.blendMode = .alpha
+                    screenMaterial.readsFromDepthBuffer = true
+                    screenMaterial.writesToDepthBuffer = true
+                    // Ensure no unintended transparency
+                    screenMaterial.transparency = 1.0
+                    screenMaterial.transparent.contents = nil
+                    screenMaterial.transparencyMode = .aOne
                     
                     // Specular reflection settings (kept, though constant lighting minimizes impact)
                     screenMaterial.specular.contents = UIColor.white
@@ -483,113 +523,10 @@ class TextureManager {
         
         // Alternative processing if no screen node is found
         if !screenFound {
-            var geometryNodes: [(SCNNode, String)] = []
             #if DEBUG
-            print("⚠️ Warning: No screen node found with geometry from candidates: \(screenNodeCandidates.map { $0.1 })")
-            print("Available nodes with geometry:")
+            print("⚠️ Warning: No screen node found. Skipping texture application to avoid misplacing on non-screen parts.")
             #endif
-            workingScene.rootNode.enumerateChildNodes { (node, _) in
-                if let geometry = node.geometry {
-                    let nodeName = node.name ?? "unnamed"
-                    geometryNodes.append((node, nodeName))
-                    #if DEBUG
-                    print("  - \(nodeName) (materials: \(geometry.materials.count))")
-                    #endif
-                }
-            }
-            
-            // Find a larger geometry (probably the screen)
-            if let largestNode = geometryNodes.max(by: { (node1, node2) in
-                let bounds1 = node1.0.boundingBox
-                let bounds2 = node2.0.boundingBox
-                let volume1 = (bounds1.max.x - bounds1.min.x) * (bounds1.max.y - bounds1.min.y) * (bounds1.max.z - bounds1.min.z)
-                let volume2 = (bounds2.max.x - bounds2.min.x) * (bounds2.max.y - bounds2.min.y) * (bounds2.max.z - bounds2.min.z)
-                return volume1 < volume2
-            }) {
-                #if DEBUG
-                print("Applying texture to largest geometry node: '\(largestNode.1)' with \(largestNode.0.geometry?.materials.count ?? 0) materials")
-                #endif
-                
-                if let geometry = largestNode.0.geometry {
-                    // Identify the appropriate material index even for the largest node
-                    var targetMaterialIndex = -1
-                    
-                    for (index, material) in geometry.materials.enumerated() {
-                        // Infer the screen part from the material name
-                        if let materialName = material.name?.lowercased() {
-                            if materialName.contains("screen") || materialName.contains("display") || materialName.contains("lcd") {
-                                targetMaterialIndex = index
-                                #if DEBUG
-                                print("Found screen material at index \(index): \(materialName)")
-                                #endif
-                                break
-                            }
-                        }
-                        
-                        // Judgment by color (infer a dark color as the screen)
-                        if let diffuseColor = material.diffuse.contents as? UIColor {
-                            var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
-                            diffuseColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
-                            let brightness = (red + green + blue) / 3.0
-                            
-                            if brightness < 0.3 { // Dark color (probably the screen)
-                                targetMaterialIndex = index
-                                #if DEBUG
-                                print("Found dark material (likely screen) at index \(index): brightness=\(brightness)")
-                                #endif
-                                break
-                            }
-                        }
-                    }
-                    
-                    // If a specific material is not found, use the last material (usually the screen part)
-                    if targetMaterialIndex == -1 && !geometry.materials.isEmpty {
-                        targetMaterialIndex = geometry.materials.count - 1
-                        #if DEBUG
-                        print("Using last material as screen (index \(targetMaterialIndex))")
-                        #endif
-                    }
-                    
-                    if targetMaterialIndex >= 0 {
-                        let screenMaterial = SCNMaterial()
-                        screenMaterial.diffuse.contents = UIColor.black
-                        screenMaterial.diffuse.wrapS = .clamp
-                        screenMaterial.diffuse.wrapT = .clamp
-                        screenMaterial.diffuse.minificationFilter = .linear
-                        screenMaterial.diffuse.magnificationFilter = .linear
-                        screenMaterial.diffuse.mipFilter = .none
-                        // Use identity transform (UV inset applied inside builder)
-                        let screenTransform4 = buildScreenContentsTransform(rotate90: false, flipX: false, flipY: false)
-                        screenMaterial.diffuse.contentsTransform = screenTransform4
-                        screenMaterial.emission.contentsTransform = screenTransform4
-                        // Render only front face to avoid mirrored artifacts
-                        screenMaterial.isDoubleSided = false
-                        screenMaterial.cullMode = .back
-                        screenMaterial.lightingModel = .constant
-                        screenMaterial.emission.contents = correctedImage
-                        screenMaterial.emission.wrapS = .clamp
-                        screenMaterial.emission.wrapT = .clamp
-                        screenMaterial.emission.minificationFilter = .nearest
-                        screenMaterial.emission.magnificationFilter = .nearest
-                        screenMaterial.emission.mipFilter = .none
-                        screenMaterial.emission.intensity = 1.0
-                        screenMaterial.blendMode = .replace
-                        screenMaterial.readsFromDepthBuffer = false
-                        screenMaterial.writesToDepthBuffer = false
-                        screenMaterial.specular.contents = UIColor.white
-                        screenMaterial.shininess = 1.0
-                        
-                        // Replace only the specific material index
-                        geometry.materials[targetMaterialIndex] = screenMaterial
-                        // Ensure screen renders on top to avoid Z-fighting
-                        largestNode.0.renderingOrder = screenRenderingOrder
-                        screenFound = true
-                        #if DEBUG
-                        print("Applied texture to material index \(targetMaterialIndex) of largest node")
-                        #endif
-                    }
-                }
-            }
+            return workingScene
         }
         
         // Error if screen node is not found
@@ -606,7 +543,9 @@ class TextureManager {
     
     // Clear the image texture and return to the original state
     func clearTextureFromModel(_ model: SCNScene) -> SCNScene? {
+        #if DEBUG
         print("Clearing texture from existing scene")
+        #endif
         
         // Find the screen part of the iPhone model and return it to the original black screen
         var screenFound = false
@@ -726,6 +665,41 @@ class TextureManager {
             stack.append(contentsOf: current.childNodes)
         }
         return nil
+    }
+    
+    // Find nodes whose name contains any of the tokens (case-insensitive)
+    private func findNodes(containingAny tokens: [String], in root: SCNNode) -> [SCNNode] {
+        let lowered = tokens.map { $0.lowercased() }
+        var results: [SCNNode] = []
+        root.enumerateChildNodes { node, _ in
+            if let name = node.name?.lowercased() {
+                if lowered.contains(where: { token in name.contains(token) }) {
+                    results.append(node)
+                }
+            }
+        }
+        return results
+    }
+    
+    // Find the nearest geometry node to a marker node (by world-space position)
+    private func findNearestGeometryNode(to marker: SCNNode, in root: SCNNode) -> SCNNode? {
+        let markerPos = marker.worldPosition
+        var nearestNode: SCNNode?
+        var nearestDist2: Float = .greatestFiniteMagnitude
+        root.enumerateChildNodes { node, _ in
+            if let _ = node.geometry {
+                let p = node.worldPosition
+                let dx = p.x - markerPos.x
+                let dy = p.y - markerPos.y
+                let dz = p.z - markerPos.z
+                let d2 = dx*dx + dy*dy + dz*dz
+                if d2 < nearestDist2 {
+                    nearestDist2 = d2
+                    nearestNode = node
+                }
+            }
+        }
+        return nearestNode
     }
     
     

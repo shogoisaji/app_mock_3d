@@ -10,8 +10,9 @@ class RenderingEngine {
         self.renderer = SCNRenderer(device: MTLCreateSystemDefaultDevice(), options: nil)
         // Ensure the renderer is rendering the provided scene
         self.renderer.scene = scene
-        // Enable default lighting so models are visible even without explicit lights
-        self.renderer.autoenablesDefaultLighting = true
+        // Match preview: use only app-defined lights (disable SceneKit default lights)
+        // PreviewAreaView ensures lights exist; enabling default lights here changes appearance.
+        self.renderer.autoenablesDefaultLighting = false
         self.scene = scene
     }
 
@@ -42,12 +43,49 @@ class RenderingEngine {
             let cameraNode = self.getOrCreateCameraNode()
             self.configureCamera(cameraNode)
 
+            // Debug: Print camera information BEFORE applying transform
+            print("[RenderingEngine] === RENDER DEBUG ===")
+            print("[RenderingEngine] Quality: \(quality), BaseResolution: \(baseResolution)")
+            print("[RenderingEngine] AspectRatio: \(aspectRatio)")
+            print("[RenderingEngine] RenderSize: \(renderSize)")
+            print("[RenderingEngine] Camera BEFORE transform - Position: \(cameraNode.position), EulerAngles: \(cameraNode.eulerAngles)")
+            if let camera = cameraNode.camera {
+                print("[RenderingEngine] Camera settings - FieldOfView: \(camera.fieldOfView), zNear: \(camera.zNear), zFar: \(camera.zFar)")
+            }
+
             if let transform = cameraTransform {
+                print("[RenderingEngine] Applying cameraTransform: \(transform)")
                 cameraNode.transform = transform
+                print("[RenderingEngine] Camera AFTER transform - Position: \(cameraNode.position), EulerAngles: \(cameraNode.eulerAngles)")
+            } else {
+                print("[RenderingEngine] No cameraTransform provided, using default camera position")
+            }
+
+            // Debug: Print manipulationRoot state
+            if let manipulationRoot = self.scene.rootNode.childNode(withName: "manipulationRoot", recursively: false) {
+                print("[RenderingEngine] ManipulationRoot found - Position: \(manipulationRoot.position), EulerAngles: \(manipulationRoot.eulerAngles), Scale: \(manipulationRoot.scale)")
+            } else {
+                print("[RenderingEngine] ManipulationRoot NOT found")
+            }
+            
+            // Debug: Print light and shadow settings
+            if let mainLight = self.scene.rootNode.childNode(withName: "mainLight", recursively: true)?.light {
+                print("[RenderingEngine] MainLight - CastsShadow: \(mainLight.castsShadow), ShadowMode: \(mainLight.shadowMode.rawValue), ShadowRadius: \(mainLight.shadowRadius)")
+            } else {
+                print("[RenderingEngine] MainLight NOT found")
+            }
+            if let fillLight = self.scene.rootNode.childNode(withName: "fillLight", recursively: true)?.light {
+                print("[RenderingEngine] FillLight - CastsShadow: \(fillLight.castsShadow)")
+            } else {
+                print("[RenderingEngine] FillLight NOT found")
             }
 
             self.renderer.pointOfView = cameraNode
             self.renderer.isTemporalAntialiasingEnabled = antiAliasing > 1
+            
+            // Configure shadow rendering to match preview behavior
+            // SCNRenderer might need explicit shadow settings while SCNView handles them automatically
+            self.renderer.showsStatistics = false
 
             if let bgColor = backgroundColor {
                 self.scene.background.contents = bgColor
@@ -69,6 +107,9 @@ class RenderingEngine {
                 with: renderSize,
                 antialiasingMode: aaMode
             )
+            
+            print("[RenderingEngine] Render completed. Image size: \(image.size)")
+            print("[RenderingEngine] === END RENDER DEBUG ===")
 
             DispatchQueue.main.async {
                 completion(image)
@@ -78,8 +119,10 @@ class RenderingEngine {
 
     private func getOrCreateCameraNode() -> SCNNode {
         if let existing = self.scene.rootNode.childNode(withName: "camera", recursively: true) {
+            print("[RenderingEngine] Using existing camera")
             return existing
         } else {
+            print("[RenderingEngine] Creating new camera")
             let node = SCNNode()
             node.name = "camera"
             node.camera = SCNCamera()

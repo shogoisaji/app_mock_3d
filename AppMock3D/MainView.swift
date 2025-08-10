@@ -21,6 +21,7 @@ struct MainView: View {
     @Binding var isSaving: Bool
     
     var handleImageButtonPressed: () -> Void
+    var onHighResExportReady: (@escaping (ExportQuality, @escaping (UIImage?) -> Void) -> Void) -> Void
     // Get the background color based on settings
     private var backgroundColor: Color {
         switch appState.settings.backgroundColor {
@@ -53,7 +54,8 @@ struct MainView: View {
                             latestSceneForExport: $latestSceneForExport,
                             latestCameraTransform: $latestCameraTransform,
                             currentPreviewSnapshot: $currentPreviewSnapshot,
-                            shouldTakeSnapshot: $shouldTakeSnapshot
+                            shouldTakeSnapshot: $shouldTakeSnapshot,
+                            onHighResExportReady: onHighResExportReady
                         )
                         // デバイス変更時の再表示アニメーション
                         .id(appState.settings.currentDeviceModel.rawValue)

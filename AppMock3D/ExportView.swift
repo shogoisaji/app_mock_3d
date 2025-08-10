@@ -155,11 +155,11 @@ struct ExportView: View {
     // Generate preview with RenderingEngine
     private func generatePreviewWithEngine(_ engine: RenderingEngine) {
         // Use the latest camera transform
-        let transformToUse = currentCameraTransform ?? cameraTransform
+        // Use nil cameraTransform to match preview default camera position (z=5.0)
         engine.renderImage(
-            withQuality: .low, 
-            aspectRatio: aspectRatio, 
-            cameraTransform: transformToUse
+            withQuality: .low,
+            aspectRatio: aspectRatio,
+            cameraTransform: nil
         ) { image in
             self.previewImage = image
             self.isLoadingPreview = false
@@ -173,11 +173,11 @@ struct ExportView: View {
         // 高画質出力のため、スナップショットは使わず必ず再レンダリング
         if let engine = renderingEngine {
             // Generate the image using RenderingEngine (fallback)
-            let transformToUse = currentCameraTransform ?? cameraTransform
+            // Use nil cameraTransform to match preview default camera position (z=5.0)
             engine.renderImage(
-                withQuality: selectedQuality, 
-                aspectRatio: aspectRatio, 
-                cameraTransform: transformToUse
+                withQuality: selectedQuality,
+                aspectRatio: aspectRatio,
+                cameraTransform: nil
             ) { image in
                 guard let image = image else {
                     self.isExporting = false
