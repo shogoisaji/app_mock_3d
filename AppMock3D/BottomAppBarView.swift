@@ -108,7 +108,7 @@ struct BottomAppBarView: View {
                             )
 
                             Text(deviceLabel)
-                                .font(.system(size: 11, weight: .bold))
+                                .font(.system(size: 16, weight: .bold))
                                 .foregroundStyle(.primary)
                         }
                         .frame(width: 18, height: 16)
@@ -145,7 +145,7 @@ struct BottomAppBarView: View {
                             )
                             
                             Text("\(max(1, min(10, lightingNumber)))")
-                                .font(.system(size: 11, weight: .bold))
+                                .font(.system(size: 13.2, weight: .bold))
                                 .foregroundStyle(.primary)
                         }
                         .frame(width: 18, height: 16)
