@@ -20,7 +20,7 @@ struct OverlayView: View {
                     ProgressView()
                         .scaleEffect(1.5)
                         .progressViewStyle(CircularProgressViewStyle(tint: Color(hex: "#E99370") ?? .orange))
-                    Text("Processing Image...")
+                    Text(NSLocalizedString("processing_image", comment: "Processing Image..."))
                         .foregroundColor(Color(hex: "#E99370") ?? .orange)
                         .padding(.top)
                 }
@@ -34,7 +34,7 @@ struct OverlayView: View {
                     Image(systemName: "exclamationmark.triangle")
                         .font(.system(size: 50))
                         .foregroundColor(Color(hex: "#E99370") ?? .orange)
-                    Text("Error")
+                    Text(NSLocalizedString("error", comment: "Error"))
                         .font(.headline)
                         .foregroundColor(Color(hex: "#E99370") ?? .orange)
                     Text(error)
@@ -42,7 +42,7 @@ struct OverlayView: View {
                         .foregroundColor(Color(hex: "#E99370") ?? .orange)
                         .multilineTextAlignment(.center)
                         .padding()
-                    Button("Retry") {
+                    Button(NSLocalizedString("retry", comment: "Retry")) {
                         appState.clearImageState()
                     }
                     .foregroundColor(.black)
@@ -60,7 +60,7 @@ struct OverlayView: View {
                     ProgressView()
                         .scaleEffect(1.5)
                         .progressViewStyle(CircularProgressViewStyle(tint: Color(hex: "#E99370") ?? .orange))
-                    Text("Saving Image...")
+                    Text(NSLocalizedString("saving_image", comment: "Saving Image..."))
                         .foregroundColor(Color(hex: "#E99370") ?? .orange)
                         .padding(.top)
                 }

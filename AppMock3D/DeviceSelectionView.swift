@@ -9,7 +9,7 @@ struct DeviceSelectionView: View {
             VStack(spacing: 16) {
 // Device model selection (horizontal scroll with image + name)
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Device")
+                    Text(NSLocalizedString("device", comment: ""))
                         .font(.headline)
 
                     ZStack {

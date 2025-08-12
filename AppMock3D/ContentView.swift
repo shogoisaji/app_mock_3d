@@ -91,23 +91,23 @@ struct ContentView: View {
             )
             .animation(.easeInOut(duration: appState.isMenuPresented ? 0.4 : 0.3), value: appState.isMenuPresented)
         }
-        .alert("Save Complete", isPresented: $showSaveSuccessAlert) {
-            Button("OK") { }
+        .alert(NSLocalizedString("save_complete_title", comment: ""), isPresented: $showSaveSuccessAlert) {
+            Button(NSLocalizedString("ok", comment: "")) { }
         } message: {
-            Text("The image has been saved to your photo library.")
+            Text(NSLocalizedString("save_complete_message", comment: ""))
         }
-        .alert("Save Error", isPresented: $showSaveErrorAlert) {
-            Button("OK") { }
+        .alert(NSLocalizedString("save_error_title", comment: ""), isPresented: $showSaveErrorAlert) {
+            Button(NSLocalizedString("ok", comment: "")) { }
         } message: {
-            Text("Failed to save the image.")
+            Text(NSLocalizedString("save_error_message", comment: ""))
         }
-        .alert("Photo Library Access", isPresented: $showingPermissionAlert) {
-            Button("Open Settings") {
+        .alert(NSLocalizedString("photo_access_title", comment: ""), isPresented: $showingPermissionAlert) {
+            Button(NSLocalizedString("open_settings", comment: "")) {
                 openAppSettings()
             }
-            Button("Cancel", role: .cancel) { } 
+            Button(NSLocalizedString("cancel", comment: ""), role: .cancel) { } 
         } message: {
-            Text("To select an image, please allow access to your photo library. You can change permissions in the Settings app for \"AppMock3D\".")
+            Text(NSLocalizedString("photo_access_message", comment: ""))
         }
         .onChange(of: currentPreviewSnapshot) { _, newSnapshot in
             if newSnapshot != nil {
@@ -119,16 +119,16 @@ struct ContentView: View {
                 showSystemSaveDialog()
             }
         }
-        .alert("Permission Required", isPresented: $showingPermissionAlert) {
-            Button("Open Settings") {
+        .alert(NSLocalizedString("permission_required_title", comment: ""), isPresented: $showingPermissionAlert) {
+            Button(NSLocalizedString("open_settings", comment: "")) {
                 // Open the settings app
                 if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
                     UIApplication.shared.open(settingsURL)
                 }
             }
-            Button("Cancel", role: .cancel) { }
+            Button(NSLocalizedString("cancel", comment: ""), role: .cancel) { }
         } message: {
-            Text("To select an image, please allow access to your photo library. You can change permissions in the Settings app for \"AppMock3D\".")
+            Text(NSLocalizedString("photo_access_message", comment: ""))
         }
     }
     
@@ -213,13 +213,13 @@ struct ContentView: View {
     private func showSystemSaveDialog() {
         showingSaveDialog = false // Reset the state
         
-        let alert = UIAlertController(title: nil, message: "Do you want to save?", preferredStyle: .alert)
+        let alert = UIAlertController(title: nil, message: NSLocalizedString("save_confirm_message", comment: "Do you want to save?"), preferredStyle: .alert)
         
-        alert.addAction(UIAlertAction(title: "Save", style: .default) { _ in
+        alert.addAction(UIAlertAction(title: NSLocalizedString("save", comment: "Save"), style: .default) { _ in
             self.exportImageDirectly()
         })
         
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
+        alert.addAction(UIAlertAction(title: NSLocalizedString("cancel", comment: "Cancel"), style: .cancel) { _ in
             // Do nothing, just dismiss
         })
         

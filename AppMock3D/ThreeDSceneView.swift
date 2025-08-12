@@ -84,7 +84,7 @@ struct ThreeDSceneView: View {
             .accessibilityIdentifier("3D Preview")
             // keep identity stable to allow background color changes to propagate
         } else {
-            Text("Loading 3D Model...")
+            Text(NSLocalizedString("loading_3d_model", comment: ""))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .accessibilityIdentifier("Loading 3D Model")
         }

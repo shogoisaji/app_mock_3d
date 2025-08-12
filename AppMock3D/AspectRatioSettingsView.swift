@@ -11,10 +11,10 @@ struct AspectRatioSettingsView: View {
                 
                 // Preset selection
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Aspect Ratio")
+                    Text(NSLocalizedString("aspect_ratio", comment: "Aspect Ratio"))
                         .font(.headline)
                     
-                    Picker("Aspect Ratio Preset", selection: $settings.aspectRatioPreset) {
+                    Picker(NSLocalizedString("aspect_ratio_preset", comment: "Aspect Ratio Preset"), selection: $settings.aspectRatioPreset) {
                         ForEach(AppSettings.AspectRatioPreset.allCases, id: \.rawValue) { preset in
                             Text(preset.rawValue).tag(preset)
                         }

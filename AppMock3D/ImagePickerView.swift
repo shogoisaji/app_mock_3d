@@ -12,7 +12,7 @@ struct ImagePickerView: View {
                     // Display the currently selected image
                     if let selectedImage = imagePickerManager.selectedImage {
                         VStack(spacing: 12) {
-                            Text("Selected Image")
+                            Text(NSLocalizedString("selected_image", comment: ""))
                                 .font(.headline)
                             
                             Image(uiImage: selectedImage)
@@ -28,7 +28,7 @@ struct ImagePickerView: View {
                                 .font(.system(size: 80))
                                 .foregroundColor(.gray)
                             
-                            Text("No image selected")
+                            Text(NSLocalizedString("no_image_selected", comment: ""))
                                 .font(.headline)
                                 .foregroundColor(.gray)
                         }
@@ -42,7 +42,7 @@ struct ImagePickerView: View {
                     ) {
                         HStack {
                             Image(systemName: "photo.on.rectangle")
-                            Text(imagePickerManager.selectedImage == nil ? "Select Image" : "Select Another Image")
+                            Text(imagePickerManager.selectedImage == nil ? NSLocalizedString("select_image", comment: "") : NSLocalizedString("select_another_image", comment: ""))
                         }
                         .foregroundColor(.white)
                         .padding()
@@ -60,7 +60,7 @@ struct ImagePickerView: View {
                         }) {
                             HStack {
                                 Image(systemName: "trash")
-                                Text("Clear Image")
+                                Text(NSLocalizedString("clear_image", comment: ""))
                             }
                             .foregroundColor(.red)
                             .padding()
@@ -75,16 +75,16 @@ struct ImagePickerView: View {
                         .font(.system(size: 60))
                         .foregroundColor(.orange)
                     
-                    Text("Photo Library access is required")
+                    Text(NSLocalizedString("photo_access_required", comment: ""))
                         .font(.headline)
                         .multilineTextAlignment(.center)
                     
-                    Text("To select an image, please allow access to your photo library.")
+                    Text(NSLocalizedString("photo_access_instruction", comment: ""))
                         .font(.subheadline)
                         .foregroundColor(.gray)
                         .multilineTextAlignment(.center)
                     
-                    Button("Allow Access") {
+                    Button(NSLocalizedString("allow_access", comment: "")) {
                         Task {
                             let status = await permissionManager.requestPermission()
                             if status != .authorized {

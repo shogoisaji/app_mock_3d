@@ -40,7 +40,7 @@ struct CheckerboardBackground: View {
     ZStack {
         CheckerboardBackground()
             .ignoresSafeArea()
-        Text("Transparent")
+        Text(NSLocalizedString("transparent", comment: ""))
             .padding()
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
     }

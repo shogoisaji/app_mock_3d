@@ -9,7 +9,7 @@ struct BackgroundSettingsView: View {
     var body: some View {
         VStack(spacing: 20) {
             HStack {
-                Text("Background Settings")
+                Text(NSLocalizedString("background_settings", comment: "Background Settings"))
                     .font(.title2)
                     .fontWeight(.bold)
                 Spacer()
@@ -18,10 +18,10 @@ struct BackgroundSettingsView: View {
             
             // Background type selection
             VStack(alignment: .leading, spacing: 10) {
-                Text("Background Type")
+                Text(NSLocalizedString("background_type", comment: "Background Type"))
                     .font(.headline)
                 
-                Picker("Background Type", selection: $settings.backgroundColor) {
+                Picker(NSLocalizedString("background_type", comment: "Background Type"), selection: $settings.backgroundColor) {
                     ForEach(AppSettings.BackgroundColorSetting.allCases, id: \.rawValue) { type in
                         Text(type.rawValue).tag(type)
                     }
@@ -33,7 +33,7 @@ struct BackgroundSettingsView: View {
             if settings.backgroundColor == .solidColor {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
-                        Text("Solid Color Settings")
+                        Text(NSLocalizedString("solid_color_settings", comment: "Solid Color Settings"))
                             .font(.headline)
                         Spacer()
                         Rectangle()
@@ -55,7 +55,7 @@ struct BackgroundSettingsView: View {
                         VStack(spacing: 15) {
                             // プリセットカラーグリッド
                             VStack(alignment: .leading, spacing: 10) {
-                                Text("Background Color")
+                                Text(NSLocalizedString("background_color", comment: "Background Color"))
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                                 
@@ -90,11 +90,11 @@ struct BackgroundSettingsView: View {
                             
                             // 透明度0%ボタン
                             HStack {
-                                Text("Transparency")
+                                Text(NSLocalizedString("transparency", comment: "Transparency"))
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                                 Spacer()
-                                Button("Make Transparent") {
+                                Button(NSLocalizedString("make_transparent", comment: "Make Transparent")) {
                                     if let currentColor = Color(hex: settings.solidColorValue) {
                                         let transparentColor = currentColor.opacity(0)
                                         settings.solidColorValue = transparentColor.toHex(includeAlpha: true)
@@ -115,10 +115,10 @@ struct BackgroundSettingsView: View {
             // Gradient settings
             if settings.backgroundColor == .gradient {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Gradient Type")
+                    Text(NSLocalizedString("gradient_type", comment: "Gradient Type"))
                         .font(.headline)
                     
-                    Picker("Gradient", selection: $settings.gradientType) {
+                    Picker(NSLocalizedString("gradient", comment: "Gradient"), selection: $settings.gradientType) {
                         ForEach(AppSettings.GradientType.allCases, id: \.rawValue) { type in
                             Text(type.rawValue).tag(type)
                         }
@@ -129,11 +129,11 @@ struct BackgroundSettingsView: View {
             
             // Environment lighting
             VStack(alignment: .leading, spacing: 10) {
-                Text("Environment Lighting")
+                Text(NSLocalizedString("environment_lighting", comment: "Environment Lighting"))
                     .font(.headline)
                 
                 HStack {
-                    Text("Intensity: \(String(format: "%.1f", settings.environmentLightingIntensity))")
+                    Text(String(format: NSLocalizedString("intensity_format", comment: "Intensity: %.1f"), settings.environmentLightingIntensity))
                     Spacer()
                 }
                 
@@ -148,7 +148,7 @@ struct BackgroundSettingsView: View {
             
             // Action buttons
             HStack {
-                Button("Cancel") {
+                Button(NSLocalizedString("cancel", comment: "Cancel")) {
                     isPresented = false
                 }
                 .padding()
@@ -156,7 +156,7 @@ struct BackgroundSettingsView: View {
                 .background(Color(.systemGray5))
                 .cornerRadius(8)
                 
-                Button("Apply") {
+                Button(NSLocalizedString("apply", comment: "Apply")) {
                     settings.save()
                     isPresented = false
                 }

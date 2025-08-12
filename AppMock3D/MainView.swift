@@ -66,7 +66,7 @@ struct MainView: View {
                         OverlayView(appState: appState, isSaving: $isSaving)
                     }
                 } else {
-                    Text("Loading 3D Model...")
+                    Text(NSLocalizedString("loading_3d_model", comment: ""))
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .accessibilityIdentifier("Loading 3D Model")
                 }

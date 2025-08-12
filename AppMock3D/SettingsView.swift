@@ -8,7 +8,7 @@ struct SettingsView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            Text("Settings")
+            Text(NSLocalizedString("settings", comment: "Settings"))
                 .font(.title)
                 .padding()
             
@@ -18,7 +18,7 @@ struct SettingsView: View {
                     GlassContainer(cornerRadius: 16, intensity: .subtle) {
                         VStack {
                             HStack {
-                                Text("Aspect Ratio")
+                                Text(NSLocalizedString("aspect_ratio", comment: "Aspect Ratio"))
                                     .font(.system(size: 16, weight: .medium))
                                 Spacer()
                                 Text(getAspectRatioText())
@@ -52,7 +52,7 @@ struct SettingsView: View {
                             
                             if showingAspectRatioSettings {
                                 VStack(alignment: .leading, spacing: 15) {
-                                    Picker("Aspect Ratio Preset", selection: $appState.settings.aspectRatioPreset) {
+                                    Picker(NSLocalizedString("aspect_ratio_preset", comment: "Aspect Ratio Preset"), selection: $appState.settings.aspectRatioPreset) {
                                         ForEach(AppSettings.AspectRatioPreset.allCases, id: \.self) { preset in
                                             Text(preset.rawValue)
                                         }
@@ -70,7 +70,7 @@ struct SettingsView: View {
                     GlassContainer(cornerRadius: 16, intensity: .subtle) {
                         VStack {
                             HStack {
-                                Text("Background")
+                                Text(NSLocalizedString("background", comment: "Background"))
                                     .font(.system(size: 16, weight: .medium))
                                 Spacer()
                                 if appState.settings.backgroundColor == .solidColor {
@@ -94,7 +94,7 @@ struct SettingsView: View {
                                         .font(.system(size: 14, weight: .regular))
                                         .foregroundColor(.secondary)
                                 } else if appState.settings.backgroundColor == .transparent {
-                                    Text("Transparent")
+                                    Text(NSLocalizedString("transparent", comment: "Transparent"))
                                         .font(.system(size: 14, weight: .regular))
                                         .foregroundColor(.secondary)
                                 }
@@ -113,7 +113,7 @@ struct SettingsView: View {
                             
                             if showingBackgroundSettings {
                                 VStack(alignment: .leading, spacing: 15) {
-                                    Picker("Background Type", selection: $appState.settings.backgroundColor) {
+                                    Picker(NSLocalizedString("background_type", comment: "Background Type"), selection: $appState.settings.backgroundColor) {
                                         ForEach(AppSettings.BackgroundColorSetting.allCases, id: \.self) { type in
                                             Text(type.rawValue)
                                         }
@@ -121,7 +121,7 @@ struct SettingsView: View {
                                     .pickerStyle(SegmentedPickerStyle())
                                     
                                     if appState.settings.backgroundColor == .solidColor {
-                                        ColorPicker("Background Color", selection: Binding(get: {
+                                        ColorPicker(NSLocalizedString("background_color", comment: "Background Color"), selection: Binding(get: {
                                             Color(hex: appState.settings.solidColorValue) ?? Color.white
                                         }, set: { color in
                                             appState.settings.solidColorValue = color.toHex()
@@ -129,20 +129,20 @@ struct SettingsView: View {
                                     }
                                     
                                     if appState.settings.backgroundColor == .gradient {
-                                        Picker("Gradient", selection: $appState.settings.gradientType) {
+                                        Picker(NSLocalizedString("gradient", comment: "Gradient"), selection: $appState.settings.gradientType) {
                                             ForEach(AppSettings.GradientType.allCases, id: \.self) { type in
                                                 Text(type.rawValue)
                                             }
                                         }
                                         .pickerStyle(SegmentedPickerStyle())
                                         
-                                        ColorPicker("Start Color", selection: Binding(get: {
+                                        ColorPicker(NSLocalizedString("start_color", comment: "Start Color"), selection: Binding(get: {
                                             Color(hex: appState.settings.gradientStartColor) ?? .white
                                         }, set: { color in
                                             appState.settings.gradientStartColor = color.toHex()
                                         }), supportsOpacity: false)
                                         
-                                        ColorPicker("End Color", selection: Binding(get: {
+                                        ColorPicker(NSLocalizedString("end_color", comment: "End Color"), selection: Binding(get: {
                                             Color(hex: appState.settings.gradientEndColor) ?? .black
                                         }, set: { color in
                                             appState.settings.gradientEndColor = color.toHex()
@@ -158,7 +158,7 @@ struct SettingsView: View {
                     
                     // Device Selection Settings with Glass Effect
                     GlassLabelButton(
-                        text: "Device Model",
+                        text: NSLocalizedString("device_model", comment: "Device Model"),
                         symbol: "chevron.right",
                         action: {
                             showingDeviceSelection = true

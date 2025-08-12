@@ -50,7 +50,7 @@ struct BottomAppBarView: View {
                             Button {
                                 onTransparentTap()
                             } label: {
-                                Label("Transparent", systemImage: "circle.dotted")
+                                Label(NSLocalizedString("transparent", comment: "Transparent"), systemImage: "circle.dotted")
                             }
                         }
                         .accessibilityIdentifier("backgroundButton")

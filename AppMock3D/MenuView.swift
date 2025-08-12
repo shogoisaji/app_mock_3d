@@ -15,7 +15,7 @@ struct MenuView: View {
                         VStack(spacing: 0) {
                             GlassMenuItemButton(
                                 icon: "doc.text",
-                                title: "Privacy Policy",
+                                title: NSLocalizedString("privacy_policy", comment: "Privacy Policy"),
                                 subtitle: "",
                                 action: { openPrivacyPolicy() },
                                 accessibilityId: "privacyPolicy"
@@ -25,7 +25,7 @@ struct MenuView: View {
                             
                             GlassMenuItemButton(
                                 icon: "doc.plaintext",
-                                title: "Terms of Service",
+                                title: NSLocalizedString("terms_of_service", comment: "Terms of Service"),
                                 subtitle: "",
                                 action: { openTermsOfService() },
                                 accessibilityId: "termsOfService"
@@ -35,7 +35,7 @@ struct MenuView: View {
                             
                             GlassMenuItemButton(
                                 icon: "envelope",
-                                title: "Contact",
+                                title: NSLocalizedString("contact", comment: "Contact"),
                                 subtitle: "",
                                 action: { openContact() },
                                 accessibilityId: "contact"
@@ -45,7 +45,7 @@ struct MenuView: View {
                             
                             GlassMenuItemButton(
                                 icon: "info.circle",
-                                title: "Version",
+                                title: NSLocalizedString("version", comment: "Version"),
                                 subtitle: getAppVersion(),
                                 action: {},
                                 accessibilityId: "version",

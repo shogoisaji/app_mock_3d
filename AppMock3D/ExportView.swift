@@ -42,7 +42,7 @@ struct ExportView: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            Text("Export Settings")
+            Text(NSLocalizedString("export_settings", comment: ""))
                 .font(.title)
                 .padding()
 
@@ -60,11 +60,11 @@ struct ExportView: View {
                     .padding(.horizontal)
                     .accessibilityIdentifier("ExportPreviewImage")
             } else {
-                Text("Could not generate preview")
+                Text(NSLocalizedString("could_not_generate_preview", comment: ""))
                     .frame(height: 200)
             }
             
-            Picker("Quality Settings", selection: $selectedQuality) {
+            Picker(NSLocalizedString("quality_settings", comment: ""), selection: $selectedQuality) {
                 ForEach(ExportQuality.allCases, id: \.self) { quality in
                     Text(quality.displayName).tag(quality)
                 }
@@ -75,7 +75,7 @@ struct ExportView: View {
             Button(action: {
                 exportImage()
             }) {
-                Text("Export Image")
+                Text(NSLocalizedString("export_image", comment: ""))
                     .padding()
                     .frame(maxWidth: .infinity)
                     .background(Color.blue)
@@ -86,7 +86,7 @@ struct ExportView: View {
             .disabled(isExporting)
             
             if isExporting {
-                ProgressView("Exporting...", value: exportProgress, total: 1.0)
+                ProgressView(NSLocalizedString("exporting", comment: ""), value: exportProgress, total: 1.0)
                     .progressViewStyle(LinearProgressViewStyle())
                     .padding()
             }
@@ -108,7 +108,7 @@ struct ExportView: View {
             }
         }
         .alert(isPresented: $showAlert) {
-            Alert(title: Text("Export Result"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
+            Alert(title: Text(NSLocalizedString("export_result", comment: "")), message: Text(alertMessage), dismissButton: .default(Text(NSLocalizedString("ok", comment: ""))))
         }
     }
 
@@ -181,7 +181,7 @@ struct ExportView: View {
             ) { image in
                 guard let image = image else {
                     self.isExporting = false
-                    self.alertMessage = "Failed to export image."
+                    self.alertMessage = NSLocalizedString("failed_to_export_image", comment: "")
                     self.showAlert = true
                     return
                 }
@@ -190,7 +190,7 @@ struct ExportView: View {
         } else {
             // If neither is available
             isExporting = false
-            alertMessage = "Could not find the image data needed for export."
+            alertMessage = NSLocalizedString("missing_image_data", comment: "")
             showAlert = true
         }
     }
@@ -201,9 +201,10 @@ struct ExportView: View {
         photoSaveManager.saveImageToPhotoLibrary(image, preferPNG: preferPNG) { success, error in
             self.isExporting = false
             if success {
-                self.alertMessage = "Image saved to photo library."
+                self.alertMessage = NSLocalizedString("image_saved", comment: "")
             } else {
-                self.alertMessage = "Failed to save image: \(error?.localizedDescription ?? "Unknown error")"
+                let errText = error?.localizedDescription ?? "Unknown error"
+                self.alertMessage = String(format: NSLocalizedString("failed_to_save_image_format", comment: ""), errText)
             }
             self.showAlert = true
         }
@@ -244,7 +245,7 @@ struct ExportView: View {
     
     private func cancelExport() {
         isExporting = false
-        alertMessage = "Export was cancelled"
+        alertMessage = NSLocalizedString("export_cancelled", comment: "")
         showAlert = true
     }
     
